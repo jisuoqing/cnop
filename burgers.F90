@@ -1,16 +1,16 @@
-!! f2py -c burgers.F90 -m burgers
+!! f2py -c burgers.F90 -m burgers_lib
 
-SUBROUTINE SOLVE_BURGERS(nt,nx,ui,vis,dt,dx,ut)
+SUBROUTINE SOLVE_BURGERS(nx,ui,nt,vis,dt,dx,ut)
 implicit none
-integer, intent(in) :: nt !number of time steps
 integer, intent(in) :: nx !number of grid points
 double precision, intent(in), dimension(nx) :: ui !initial conditions
+integer, intent(in) :: nt !number of time steps
 double precision, intent(in) :: vis ! diffusion coefficient
 double precision, intent(in) :: dt !time increment
 double precision, intent(in) :: dx !space increment
 double precision, intent(out), dimension(nx) :: ut !solutions
 
-double precision ub(nx,nt) !basic states(u)
+! double precision ub(nx,nt) !basic states(u)
 double precision u(nx,nt) !model solutions
 
 double precision c0,c1

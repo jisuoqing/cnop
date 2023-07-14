@@ -7,10 +7,10 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
 
     iter0 = 0
 
-    max_float = 1.e30  # np.finfo(float).max
-    min_float = 1.e-30  # np.finfo(float).tiny
+    max_float = 1.e100  # np.finfo(float).max
+    min_float = 1.e-100  # np.finfo(float).tiny
 
-    max_iter = 1000
+    max_iter = 300
     ifcnt = 0
 
     max_ifcnt = 100000
@@ -100,6 +100,7 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
 
         print("lambda = ", lambda_)
         print("j_val = ", j_val)
+        print("sts = ", sts)
         print("sty = ", sty)
         print("cgnorm = ", cgnorm)
 

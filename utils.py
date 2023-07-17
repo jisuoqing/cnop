@@ -1,4 +1,5 @@
 import numpy as np
+from solvers import solve
 
 
 def do_projection(u, delta=8e-4):
@@ -26,10 +27,9 @@ def usphere_sample(n):
     return x
 
 
-def burgers_obj(u0, u_pert, t, vis, delta_t, delta_x):
-    from burgers_lib import solve_burgers
+def compute_obj(u0, u_pert, t, vis, delta_t, delta_x):
     # compute the objective value
-    ut = solve_burgers(u0, t, vis, delta_t, delta_x)
-    ut_pert = solve_burgers(u0 + u_pert, t, vis, delta_t, delta_x)
+    ut = solve(u0, t, vis, delta_t, delta_x)
+    ut_pert = solve(u0 + u_pert, t, vis, delta_t, delta_x)
     j_val = - ((ut_pert - ut) ** 2).sum()
     return j_val

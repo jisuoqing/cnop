@@ -2,7 +2,7 @@ import numpy as np
 
 
 def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
-    from utils import do_projection, burgers_obj
+    from utils import do_projection, compute_obj
     from grad_defn import grad_defn
 
     iter0 = 0
@@ -26,7 +26,7 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
     u0_best = u_pert.copy()
 
     # compute objective value
-    j_val = burgers_obj(u0, u_pert, t, vis, delta_t, delta_x)
+    j_val = compute_obj(u0, u_pert, t, vis, delta_t, delta_x)
     j_values[0] = j_val
     j_best = j_val
     ifcnt += 1
@@ -38,7 +38,7 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
     # step-1: discriminate whether the current point is stationary
     cg = u_pert - g
     cg = do_projection(cg)
-    cgnorm = (np.abs(cg - u_pert)).max()
+    cgnorm = (np.abs(cg - u_pert)).max()  # TODO: check this
 
     if cgnorm != 0:
         lambda_ = 1 / cgnorm
@@ -58,7 +58,7 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
         # step-2.2 and step 2.3: compute alpha (lambda in paper) and u0_new,
         j_max = j_values.max()
         u0_new = u_pert + d
-        j_new = burgers_obj(u0, u0_new, t, vis, delta_t, delta_x)
+        j_new = compute_obj(u0, u0_new, t, vis, delta_t, delta_x)
         ifcnt = ifcnt + 1
         alpha = 1
 
@@ -71,7 +71,7 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
                     atemp = alpha / 2.
                 alpha = atemp
             u0_new = u_pert + alpha * d
-            j_new = burgers_obj(u0, u0_new, t, vis, delta_t, delta_x)
+            j_new = compute_obj(u0, u0_new, t, vis, delta_t, delta_x)
             ifcnt += 1
 
         j_val = j_new

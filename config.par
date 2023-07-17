@@ -1,0 +1,5 @@
+[Solver]
+name = burgers
+
+[Parameter]
+

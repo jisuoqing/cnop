@@ -1,6 +1,6 @@
 !! f2py -c burgers.F90 -m burgers_lib
 
-SUBROUTINE SOLVE_BURGERS(nx,ui,nt,vis,dt,dx,ut)
+SUBROUTINE EVOLVE_BURGERS(nx,ui,nt,vis,dt,dx,ut)
 implicit none
 integer, intent(in) :: nx !number of grid points
 double precision, intent(in), dimension(nx) :: ui !initial conditions

@@ -2,7 +2,7 @@ import configparser
 import importlib
 
 
-def solve(*args, **kwargs):
+def evolve(*args, **kwargs):
     # read parameter file
     config = configparser.ConfigParser()
     config.read("config.par")
@@ -11,10 +11,10 @@ def solve(*args, **kwargs):
     solver_name = config.get("Solver", "name")
     if solver_name == "burgers":
         function_module = importlib.import_module("solvers.burgers_lib")
-        function = getattr(function_module, "solve_burgers")
+        function = getattr(function_module, "evolve_burgers")
     elif solver_name == "flash":
         function_module = importlib.import_module("solvers.flash")
-        function = getattr(function_module, "solve_flash")
+        function = getattr(function_module, "evolve_flash")
     else:
         raise ValueError("Unknown solver name: {}".format(solver_name))
 

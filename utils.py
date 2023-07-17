@@ -1,5 +1,5 @@
 import numpy as np
-from solvers import solve
+from solvers import evolve
 
 
 def do_projection(u, delta=8e-4):
@@ -29,7 +29,7 @@ def usphere_sample(n):
 
 def compute_obj(u0, u_pert, t, vis, delta_t, delta_x):
     # compute the objective value
-    ut = solve(u0, t, vis, delta_t, delta_x)
-    ut_pert = solve(u0 + u_pert, t, vis, delta_t, delta_x)
+    ut = evolve(u0, t, vis, delta_t, delta_x)
+    ut_pert = evolve(u0 + u_pert, t, vis, delta_t, delta_x)
     j_val = - ((ut_pert - ut) ** 2).sum()
     return j_val

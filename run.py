@@ -2,7 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from cnop_methods import spg2_defn
 from utils import usphere_sample
-from solvers import solve
+from solvers import evolve
 
 # parameters
 time = 6.
@@ -18,12 +18,12 @@ u_pert[1:-1] = usphere_sample(len(u0)-2)
 
 # find initial conditions---u0_basic----以模式第58时刻的状态为初始条件 然后在此基础上添加扰动 再求CNOP
 T1 = 58
-u0_basic = solve(u0, T1, vis, delta_t, delta_x)
+u0_basic = evolve(u0, T1, vis, delta_t, delta_x)
 
 u0_best, j_best = spg2_defn(u0_basic, u_pert, nt, vis, delta_t, delta_x)
 
-ut0 = solve(u0_basic, nt, vis, delta_t, delta_x)
-ut_best = solve(u0_basic + u0_best, nt, vis, delta_t, delta_x)
+ut0 = evolve(u0_basic, nt, vis, delta_t, delta_x)
+ut_best = evolve(u0_basic + u0_best, nt, vis, delta_t, delta_x)
 
 plt.plot(x, ut0)
 plt.plot(x, ut_best)

@@ -11,10 +11,16 @@ def update_parameter(file_path, options, new_file_path=None):
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    for i, line in enumerate(lines):
-        for option, value in options.items():
+    for option, value in options.items():
+        found = False
+        for i, line in enumerate(lines):
             if line.startswith(option):
                 lines[i] = f"{option} = {value}\n"
+                found = True
+                break
+
+        if not found:
+            raise ValueError(f"Option '{option}' not found in the file.")
 
     if new_file_path is None:
         new_file_path = file_path

@@ -25,7 +25,7 @@ u0_best, j_best = spg2_defn(u0_basic, u_pert, nt, vis, delta_t, delta_x)
 ut0 = evolve(u0_basic, nt, vis, delta_t, delta_x)
 ut_best = evolve(u0_basic + u0_best, nt, vis, delta_t, delta_x)
 
-plt.plot(x, ut0)
-plt.plot(x, ut_best)
+# plt.plot(x, ut0)
+plt.plot(x, u0_best)
 plt.show()
 

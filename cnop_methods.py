@@ -16,7 +16,7 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
     max_ifcnt = 100000
     igcnt = 0
 
-    eps = 1e-10
+    eps = 1e-8
     gamma = 0.0001
 
     # storage M = 10 recent numbers

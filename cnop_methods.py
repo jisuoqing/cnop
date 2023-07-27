@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
+def spg2_defn(process, u_pert, t1):
     from utils import do_projection, compute_obj
     from grad_defn import grad_defn
 
@@ -26,19 +26,19 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
     u0_best = u_pert.copy()
 
     # compute objective value
-    j_val = compute_obj(u0, u_pert, t, vis, delta_t, delta_x)
+    j_val = compute_obj(process, u_pert, t1)
     j_values[0] = j_val
     j_best = j_val
     ifcnt += 1
 
     # compute gradient (adjoint method)
-    g = grad_defn(u0, u_pert, t, vis, delta_t, delta_x)
+    g = grad_defn(process, u_pert, t1, epsilon=1e-08)
     igcnt += 1
 
     # step-1: discriminate whether the current point is stationary
     cg = u_pert - g
     cg = do_projection(cg)
-    cgnorm = (np.abs(cg - u_pert)).max()  # TODO: check this
+    cgnorm = (np.abs(cg - u_pert)).max()
 
     if cgnorm != 0:
         lambda_ = 1 / cgnorm
@@ -58,7 +58,7 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
         # step-2.2 and step 2.3: compute alpha (lambda in paper) and u0_new,
         j_max = j_values.max()
         u0_new = u_pert + d
-        j_new = compute_obj(u0, u0_new, t, vis, delta_t, delta_x)
+        j_new = compute_obj(process, u0_new, t1)
         ifcnt = ifcnt + 1
         alpha = 1
 
@@ -71,7 +71,7 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
                     atemp = alpha / 2.
                 alpha = atemp
             u0_new = u_pert + alpha * d
-            j_new = compute_obj(u0, u0_new, t, vis, delta_t, delta_x)
+            j_new = compute_obj(process, u0_new, t1)
             ifcnt += 1
 
         j_val = j_new
@@ -79,7 +79,7 @@ def spg2_defn(u0, u_pert, t, vis=0.5, delta_t=0.1, delta_x=1.):
         if j_new < j_best:
             j_best = j_new
             u0_best = u0_new.copy()
-        g_new = grad_defn(u0, u0_new, t, vis, delta_t, delta_x)
+        g_new = grad_defn(process, u0_new, t1)
         igcnt = igcnt + 1
 
         # step-3: compute lambda (alpha in paper)

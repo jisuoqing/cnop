@@ -1,26 +1,26 @@
-def update_parameter(file_path, options, new_file_path=None):
+def update_parameter(file_path, params, new_file_path=None):
     """
-    options = {
+    params = {
         "restart": ".true.",
         "checkpointFileNumber": 1,
         "plotFileNumber": 1,
         "tmax": 10,
         }
-    update_parameter("flash.par", options, "flash_new.par")
+    update_parameter("flash.par", params, "flash_new.par")
     """
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    for option, value in options.items():
+    for param, value in params.items():
         found = False
         for i, line in enumerate(lines):
-            if line.startswith(option):
-                lines[i] = f"{option} = {value}\n"
+            if line.startswith(param):
+                lines[i] = f"{param} = {value}\n"
                 found = True
                 break
 
         if not found:
-            raise ValueError(f"Option '{option}' not found in the file.")
+            raise ValueError(f"Parameter '{param}' not found in the file.")
 
     if new_file_path is None:
         new_file_path = file_path

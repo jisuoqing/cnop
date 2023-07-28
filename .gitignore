@@ -2,6 +2,10 @@
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,macos,fortran,jetbrains,jupyternotebooks,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,macos,fortran,jetbrains,jupyternotebooks,python
 
+# User-defined
+*_stdout.txt
+*_stderr.txt
+
 ### Fortran ###
 # Prerequisites
 *.d

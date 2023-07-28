@@ -4,6 +4,8 @@ import numpy as np
 class Burgers:
     def __init__(self, u_init, t0, **kwargs):
         # for given initial condition u_init, evolve it to time t0 as the basic state u0
+        if not isinstance(u_init, np.ndarray):
+            raise ValueError("The u_init must be a numpy array in Burgers class.")
         self.u_init = u_init
         self.t0 = t0
         self.vis = kwargs.get('vis', 0.5)

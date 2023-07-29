@@ -23,7 +23,7 @@ def spg2_defn(process, u_pert, t1):
     j_num = 10
     j_values = -np.inf * np.ones(j_num)
     u_pert = do_projection(u_pert)
-    u0_best = u_pert.copy()
+    u_pert_best = u_pert.copy()
 
     # compute objective value
     j_val = compute_obj(process, u_pert, t1)
@@ -50,15 +50,14 @@ def spg2_defn(process, u_pert, t1):
 
         # step-2.1: compute d
         d = u_pert - lambda_ * g
-
         d = do_projection(d)
         d = d - u_pert
         gtd = (g*d).sum()
 
         # step-2.2 and step 2.3: compute alpha (lambda in paper) and u0_new,
         j_max = j_values.max()
-        u0_new = u_pert + d
-        j_new = compute_obj(process, u0_new, t1)
+        u_pert_new = u_pert + d
+        j_new = compute_obj(process, u_pert_new, t1)
         ifcnt = ifcnt + 1
         alpha = 1
 
@@ -70,24 +69,24 @@ def spg2_defn(process, u_pert, t1):
                 if atemp < 0.1 or atemp > 0.9 * alpha:
                     atemp = alpha / 2.
                 alpha = atemp
-            u0_new = u_pert + alpha * d
-            j_new = compute_obj(process, u0_new, t1)
+            u_pert_new = u_pert + alpha * d
+            j_new = compute_obj(process, u_pert_new, t1)
             ifcnt += 1
 
         j_val = j_new
         j_values[np.mod(iter0, j_num)] = j_val  # store the recent j_num values
         if j_new < j_best:
             j_best = j_new
-            u0_best = u0_new.copy()
-        g_new = grad_defn(process, u0_new, t1)
+            u_pert_best = u_pert_new.copy()
+        g_new = grad_defn(process, u_pert_new, t1)
         igcnt = igcnt + 1
 
         # step-3: compute lambda (alpha in paper)
-        s = u0_new - u_pert
+        s = u_pert_new - u_pert
         y = g_new - g
         sts = (s**2.).sum()
         sty = (s*y).sum()
-        u_pert = u0_new.copy()
+        u_pert = u_pert_new.copy()
         g = g_new.copy()
         cg = u_pert - g
         cg = do_projection(cg)
@@ -115,4 +114,4 @@ def spg2_defn(process, u_pert, t1):
             else:
                 print('unknown stop')
 
-    return u0_best, j_best
+    return u_pert_best, j_best

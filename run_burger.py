@@ -22,8 +22,8 @@ nt0 = 58
 t0 = nt0 * (t1 / nt)
 
 process = Burgers(u_init, t0, vis=vis, delta_t=delta_t, delta_x=delta_x)
-u0_best, j_best = spg2_defn(process, u_pert, t1)
+u_pert_best, j_best = spg2_defn(process, u_pert, t1)
 
-plt.plot(x, u0_best)
+plt.plot(x, u_pert_best)
 plt.show()
 

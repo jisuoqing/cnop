@@ -9,8 +9,9 @@ class Flash(Simulation):
             "plotFileNumber": 0,
             "cnop_var": cnop_var,
             "tmax": t0,
-            # Do not do inject perturbation when evolving to basic state, for safety
-            "cnop_doInject": ".true.",
+            # Do not do inject perturbation when evolving to basic state u0
+            # Although injection is not performed when restart = false, we still turn off cnop_doInject for safety
+            "cnop_doInject": ".false.",
             # Do not produce any output files except the last one
             "checkpointFileIntervalStep": 0,
             "checkpointFileIntervalTime": 0.,

@@ -1,4 +1,4 @@
-from sim_controller import update_parameter
+from sim_controller import update_parameter, get_system_info
 import subprocess
 import os
 import warnings
@@ -50,7 +50,7 @@ class Simulation:
         del ds
         return u_pert
 
-    def proceed_simulation(self, params, exec_cmd=None, u_pert=None, u_pert_fn=None, ut_fn=None):
+    def proceed_simulation(self, params, exec_cmd=None, u_pert=None, u_pert_fn=None, ut_fn=None, delete_fn=None):
         # evolve the basic state to time t1, with perturbation u_pert. t1 is specified in params
         # Note that only when we actually run the simulation, we need save u_pert into a file
         if exec_cmd is not None:
@@ -84,13 +84,33 @@ class Simulation:
                                        cwd=self.base_dir)
             process.wait()
         if process.returncode != 0:
-            raise ValueError("The solver is not working properly, and no evolving state file is generated!")
-        elif not os.path.exists(self.base_dir + "/" + ut_fn):
+            print("The solver is not working properly! Dump system info and retrying...")
+            get_system_info()
+            print("Executing command: {}".format(self.exec_cmd))
+            process = subprocess.Popen(exec_args, stdout=stdout_file, stderr=stderr_file, shell=False,
+                                       cwd=self.base_dir)
+            process.wait()
+            if process.returncode != 0:
+                raise ValueError("The solver is not working properly after a 2nd trial, and no evolving state file is "
+                                 "generated!")
+
+        if not os.path.exists(self.base_dir + "/" + ut_fn):
             raise ValueError("The evolving state file might be generated, but you might guess the file name wrong!")
         # print("The ut state is evolved from the basic state u0 and saved as {}.".format(ut_fn))
+
         # Delete the perturbation file
         if u_pert_fn is not None:
             os.remove(self.base_dir + "/" + u_pert_fn)
+
+        # Delete the file specified by delete_fn for each run
+        if delete_fn is not None:
+            # tell delete_fn is a string or list
+            if isinstance(delete_fn, str):
+                delete_fn = [delete_fn]
+            for fn in delete_fn:
+                os.remove(self.base_dir + "/" + fn)
+
+        # Return the evolving state ut
         ut = self.yt_read(self.base_dir, ut_fn, self.cnop_var)
         return ut
 

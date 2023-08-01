@@ -1,0 +1,5 @@
+numpy
+yt>=4.0.0
+h5py
+matplotlib
+psutil

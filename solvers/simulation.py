@@ -87,9 +87,12 @@ class Simulation:
             print("The solver is not working properly! Dump system info and retrying...")
             get_system_info()
             print("Executing command: {}".format(self.exec_cmd))
-            process = subprocess.Popen(exec_args, stdout=stdout_file, stderr=stderr_file, shell=False,
-                                       cwd=self.base_dir)
-            process.wait()
+            with open('%s_evolving_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
+                    open('%s_evolving_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
+                exec_args = shlex.split(self.exec_cmd)
+                process = subprocess.Popen(exec_args, stdout=stdout_file, stderr=stderr_file, shell=False,
+                                           cwd=self.base_dir)
+                process.wait()
             if process.returncode != 0:
                 raise ValueError("The solver is not working properly after a 2nd trial, and no evolving state file is "
                                  "generated!")

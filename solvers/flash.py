@@ -2,12 +2,13 @@ from solvers.simulation import Simulation
 
 
 class Flash(Simulation):
-    def __init__(self, t0, base_dir, exec_cmd, basename, cnop_var):
+    def __init__(self, t0, base_dir, exec_cmd, basename, pert_var, grow_var):
         init_params = {
             "restart": ".false.",
             "checkpointFileNumber": 0,
             "plotFileNumber": 0,
-            "cnop_var": cnop_var,
+            "cnop_pert_var": pert_var,
+            "cnop_grow_var": grow_var,
             "tmax": t0,
             # Do not do inject perturbation when evolving to basic state u0
             # Although injection is not performed when restart = false, we still turn off cnop_doInject for safety
@@ -20,7 +21,7 @@ class Flash(Simulation):
         }
         self.basename = basename
         u0_fn = "%s_hdf5_chk_0001" % self.basename
-        super().__init__(None, base_dir, exec_cmd, init_params, "flash.par", u0_fn, cnop_var)
+        super().__init__(None, base_dir, exec_cmd, init_params, "flash.par", u0_fn, pert_var, grow_var)
         return
 
     def proceed(self, t1, u_pert=None):
@@ -35,7 +36,8 @@ class Flash(Simulation):
             "restart": ".true.",
             "checkpointFileNumber": 1,  # restart from _chk_0001
             "plotFileNumber": 0,
-            "cnop_var": self.cnop_var,
+            "cnop_pert_var": self.pert_var,
+            "cnop_grow_var": self.grow_var,
             "tmax": t1,
             "cnop_doInject": cnop_do_inject,
             "cnop_injectFile": u_pert_fn,
@@ -47,5 +49,8 @@ class Flash(Simulation):
         }
         # since we restart from "_chk_0001", new file should be named as "_chk_0002"
         ut_fn = "%s_hdf5_chk_0002" % self.basename  # based on FLash dataset naming format, say "cnop1d_hdf5_chk_0000"
-        ut = super().proceed_simulation(params, exec_cmd, u_pert, u_pert_fn, ut_fn)
+
+        # Delete FLASH log and .dat files which will not be overwritten and will increase in size if not deleted
+        delete_fn = ["flash.dat", self.basename + ".log"]
+        ut = super().proceed_simulation(params, exec_cmd, u_pert, u_pert_fn, ut_fn, delete_fn)
         return ut

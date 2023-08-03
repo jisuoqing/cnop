@@ -5,6 +5,9 @@ def spg2_defn(process, u_pert, t1):
     from utils import do_projection, compute_obj
     from grad_defn import grad_defn
 
+    additional_info_name = ["u_pert", "u_pert_best", "j_best", "j_values", "j_val",
+                            "ifcnt", "igcnt", "iter0", "g", "lambda_", "cgnorm"]
+
     iter0 = 0
 
     max_float = 1.e100  # np.finfo(float).max
@@ -52,7 +55,7 @@ def spg2_defn(process, u_pert, t1):
         d = u_pert - lambda_ * g
         d = do_projection(d)
         d = d - u_pert
-        gtd = (g*d).sum()
+        gtd = (g * d).sum()
 
         # step-2.2 and step 2.3: compute alpha (lambda in paper) and u0_new,
         j_max = j_values.max()
@@ -84,8 +87,8 @@ def spg2_defn(process, u_pert, t1):
         # step-3: compute lambda (alpha in paper)
         s = u_pert_new - u_pert
         y = g_new - g
-        sts = (s**2.).sum()
-        sty = (s*y).sum()
+        sts = (s ** 2.).sum()
+        sty = (s * y).sum()
         u_pert = u_pert_new.copy()
         g = g_new.copy()
         cg = u_pert - g
@@ -102,6 +105,13 @@ def spg2_defn(process, u_pert, t1):
         print("sts = ", sts)
         print("sty = ", sty)
         print("cgnorm = ", cgnorm)
+
+        # save all needed information for restart with h5py
+        state_fn = "state_%04d.h5" % iter0
+        additional_info = {}
+        for name in additional_info_name:
+            additional_info[name] = eval(name)
+        process.save_state(state_fn, additional_info)
 
     if cgnorm <= eps:
         print('convergence')

@@ -6,6 +6,7 @@ import shlex
 import yt
 import numpy as np
 import h5py
+
 yt.set_log_level("error")
 
 
@@ -36,6 +37,9 @@ class Simulation:
         self.pert_var = pert_var
         self.grow_var = grow_var
 
+        self.t1 = None
+        self.ut1_unperturbed_fn = None
+
         if os.path.exists(self.base_dir + "/" + self.u0_fn):
             # warnings.warn("The basic state file already exists! Deleting it now for safety.")
             os.remove(self.base_dir + "/" + self.u0_fn)
@@ -62,9 +66,12 @@ class Simulation:
         del ds
         return u_pert
 
-    def proceed_simulation(self, params, exec_cmd=None, u_pert=None, u_pert_fn=None, ut_fn=None, delete_fn=None):
+    def proceed_simulation(self, params, t1, exec_cmd=None, u_pert=None, u_pert_fn=None, ut_fn=None, delete_fn=None):
         # evolve the basic state to time t1, with perturbation u_pert. t1 is specified in params
         # Note that only when we actually run the simulation, we need save u_pert into a file
+        if t1 not in params.values():
+            raise ValueError("The final time is not included in the input parameter!")
+
         if exec_cmd is not None:
             # if a different command is needed for restarting
             self.exec_cmd = exec_cmd
@@ -83,11 +90,27 @@ class Simulation:
         else:
             if u_pert_fn is not None:
                 raise ValueError("The perturbation file name is specified, but the perturbation is not!")
+            if self.ut1_unperturbed_fn is not None and self.t1 == t1:
+                # if the unperturbed solution at t1 is already computed, then no need to rerun sim, jut return it
+                t1_infile = self.yt_read_parameter(self.base_dir, self.ut1_unperturbed_fn, 'current_time')
+                if np.isclose(t1, t1_infile, atol=np.min((t1, t1_infile))*1e-3):  # allow 0.1% tolerance due to timestep
+                    ut = self.yt_read_solution(self.base_dir, self.ut1_unperturbed_fn, self.grow_var)
+                    # print("The unperturbed solution at t1 is already computed, and is read from file {}.".format(
+                    # self.ut1_unperturbed_fn))
+                    return ut
+                else:
+                    warnings.warn("The unperturbed solution at t1 is already computed, but the time does not match! "
+                                  "Deleting it now for safety and will recompute it.")
+                    os.remove(self.base_dir + "/" + self.ut1_unperturbed_fn)
+                    self.t1 = None
+                    self.ut1_unperturbed_fn = None
+
         # Now update the parameter file
         update_parameter(self.base_dir + "/" + self.param_fn, params)
         if os.path.exists(self.base_dir + "/" + ut_fn):
             # warnings.warn("The evolving state file already exists! Deleting it now for safety.")
             os.remove(self.base_dir + "/" + ut_fn)
+
         # Now start the simulation
         with open('%s_evolving_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
                 open('%s_evolving_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
@@ -95,6 +118,7 @@ class Simulation:
             process = subprocess.Popen(exec_args, stdout=stdout_file, stderr=stderr_file, shell=False,
                                        cwd=self.base_dir)
             process.wait()
+
         if process.returncode != 0:
             print("The solver is not working properly! Dump system info and retrying...")
             get_system_info()
@@ -117,7 +141,7 @@ class Simulation:
         if u_pert_fn is not None:
             os.remove(self.base_dir + "/" + u_pert_fn)
 
-        # Delete the file specified by delete_fn for each run
+        # Delete the file specified by delete_fn for each run, in case some log file grows too large
         if delete_fn is not None:
             # tell delete_fn is a string or list
             if isinstance(delete_fn, str):
@@ -125,14 +149,45 @@ class Simulation:
             for fn in delete_fn:
                 os.remove(self.base_dir + "/" + fn)
 
+        if u_pert is None and self.ut1_unperturbed_fn is None:
+            # if the unperturbed solution at t1 is not saved, then save the current state as the unperturbed solution
+            self.ut1_unperturbed_fn = ut_fn + "_unperturbed"
+            self.t1 = t1
+            os.system("cp " + self.base_dir + "/" + ut_fn + " " + self.base_dir + "/" + self.ut1_unperturbed_fn)
+
         # Return the evolving state ut
-        ut = self.yt_read(self.base_dir, ut_fn, self.grow_var)
+        ut = self.yt_read_solution(self.base_dir, ut_fn, self.grow_var)
         return ut
 
     @staticmethod
-    def yt_read(base_dir, fn, grow_var):
+    def yt_read_solution(base_dir, fn, grow_var):
         # Return the evolving state ut as one-dimensional array, since its spatial info is not needed
         ds = yt.load(base_dir + "/" + fn)
-        state = ds.all_data()[grow_var].v
+        solution = ds.all_data()[grow_var].v
         del ds
-        return state
+        return solution
+
+    @staticmethod
+    def yt_read_parameter(base_dir, fn, param_name):
+        ds = yt.load(base_dir + "/" + fn)
+        if param_name == "current_time":
+            param = ds.current_time.v
+        else:
+            param = ds.parameters[param_name]
+        del ds
+        return param
+
+    @staticmethod
+    def save_state(self, state_fn: str = None, additional_info: dict = None):
+        if state_fn is None:
+            state_fn = "state.h5"
+        with h5py.File(self.base_dir + "/" + state_fn, 'w') as f:
+            for k, v in self.__dict__.items():
+                try:
+                    f.create_dataset(k, data=v)
+                except TypeError:
+                    warnings.warn("The attribute {} cannot be saved!".format(k))
+            if additional_info is not None:
+                for key, value in additional_info.items():
+                    f.create_dataset(key, data=value)
+        return

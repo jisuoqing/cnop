@@ -51,5 +51,5 @@ class Flash(Simulation):
 
         # Delete FLASH log and .dat files which will not be overwritten and will increase in size if not deleted
         delete_fn = ["flash.dat", self.basename + ".log"]
-        ut = super().proceed_simulation(params, exec_cmd, u_pert, u_pert_fn, ut_fn, delete_fn)
+        ut = super().proceed_simulation(params, t1, exec_cmd, u_pert, u_pert_fn, ut_fn, delete_fn)
         return ut

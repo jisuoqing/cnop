@@ -5,6 +5,11 @@
 # User-defined
 *_stdout.txt
 *_stderr.txt
+*.h5
+*.npz
+*.npy
+*.pdf
+*.png
 
 ### Fortran ###
 # Prerequisites

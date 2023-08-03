@@ -12,6 +12,10 @@ class Burgers:
         self.delta_t = kwargs.get('delta_t', 0.1)
         self.delta_x = kwargs.get('delta_x', 1.0)
         self.x = np.arange(0, len(self.u_init)) * self.delta_x
+        self.base_dir = kwargs.get('base_dir', './')
+        self.basename = kwargs.get('basename', 'burgers')
+        self.t1 = None
+        self.ut1_unperturbed = None
         nt0 = int(self.t0 / self.delta_t + 1)
         # now evolve the initial condition to t0, to obtain u0 which is the basic state
         import importlib
@@ -24,8 +28,21 @@ class Burgers:
     def proceed(self, t1, u_pert=None):
         nt = int(t1 / self.delta_t + 1)
         if u_pert is None:
-            ut = self.solve(self.u0, nt, self.vis, self.delta_t, self.delta_x)
+            if self.ut1_unperturbed is not None and self.t1 == t1:
+                # if the unperturbed solution at t1 is already computed, then return it
+                return self.ut1_unperturbed
+            else:
+                # otherwise, compute the unperturbed solution at t1 and return it
+                ut = self.solve(self.u0, nt, self.vis, self.delta_t, self.delta_x)
+                self.ut1_unperturbed = ut
+                self.t1 = t1
+                return ut
         else:
             # perturbation is added at time t0 and then evolved over another t1
             ut = self.solve(self.u0 + u_pert, nt, self.vis, self.delta_t, self.delta_x)
-        return ut
+            return ut
+
+    def save_state(self, state_fn: str = None, additional_info: dict = None):
+        from solvers.simulation import Simulation
+        Simulation.save_state(self, state_fn, additional_info)
+        return

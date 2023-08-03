@@ -8,7 +8,7 @@ class Flash(Simulation):
             "checkpointFileNumber": 0,
             "plotFileNumber": 0,
             "cnop_pert_var": pert_var,
-            "cnop_grow_var": grow_var,
+            # "cnop_grow_var" no need to include grow_var in sim params since it is handled by Python post-processing
             "tmax": t0,
             # Do not do inject perturbation when evolving to basic state u0
             # Although injection is not performed when restart = false, we still turn off cnop_doInject for safety
@@ -24,20 +24,19 @@ class Flash(Simulation):
         super().__init__(None, base_dir, exec_cmd, init_params, "flash.par", u0_fn, pert_var, grow_var)
         return
 
-    def proceed(self, t1, u_pert=None):
+    def proceed(self, t1, u_pert=None, u_pert_fn="u_pert.h5"):
         exec_cmd = self.exec_cmd  # Flash does not need a different command for restarting
         if u_pert is None:
             cnop_do_inject = ".false."
             u_pert_fn = None
         else:
             cnop_do_inject = ".true."
-            u_pert_fn = "u_pert.h5"
         params = {
             "restart": ".true.",
             "checkpointFileNumber": 1,  # restart from _chk_0001
             "plotFileNumber": 0,
             "cnop_pert_var": self.pert_var,
-            "cnop_grow_var": self.grow_var,
+            # "cnop_grow_var" no need to include grow_var in sim params since it is handled by Python post-processing
             "tmax": t1,
             "cnop_doInject": cnop_do_inject,
             "cnop_injectFile": u_pert_fn,

@@ -1,6 +1,5 @@
 import numpy as np
 from sim_controller import find_latest_checkpoint, load_checkpoint
-import h5py
 
 
 class Burgers:

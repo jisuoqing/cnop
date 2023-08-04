@@ -1,5 +1,4 @@
 import numpy as np
-from utils import compute_obj
 
 
 def grad_defn(process, u_pert, t, epsilon=1e-08):

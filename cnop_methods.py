@@ -110,8 +110,7 @@ class Spg2Defn:
             print("sty = ", sty)
             print("cgnorm = ", self.cgnorm)
 
-            # save all needed information for restart with h5py
-            checkpoint_fn = "checkpoint_%04d.h5" % self.iter0
+            # save all needed information for restart
             process.save_checkpoint(self.iter0, method_info=self)
 
         if self.cgnorm <= self.eps:

@@ -1,4 +1,8 @@
 import psutil
+import os
+import re
+import glob
+import h5py
 
 
 def update_parameter(file_path, params, new_file_path=None):
@@ -31,6 +35,66 @@ def update_parameter(file_path, params, new_file_path=None):
         new_file.writelines(lines)
 
     # print(f"Updated file saved as {new_file_path}")
+
+
+def find_latest_checkpoint(base_dir, prefix):
+    """
+    Find the latest checkpoint file in the directory
+    :param base_dir: path
+    :param prefix: prefix of the checkpoint file
+    :return: latest checkpoint file path
+    """
+
+    # Find all checkpoint files
+    chk_files = glob.glob(os.path.join(base_dir, prefix + "_*"))
+    if len(chk_files) == 0:
+        raise FileNotFoundError("No checkpoint file found.")
+    # Find the latest checkpoint file
+    latest_chk_file = max(chk_files, key=lambda fn: int(fn.split('_')[-1].split('.h5')[0]))
+    return latest_chk_file
+
+
+def load_checkpoint(file_path, group_name, handle):
+    if group_name not in ["process", "method"]:
+        raise ValueError("group_name must be either 'process' or 'method'.")
+    group_data = load_h5_data(file_path)[group_name]
+    for key in group_data.keys():
+        # print(key, group_data[key])
+        setattr(handle, key, group_data[key])
+    return handle
+
+
+def load_h5_data(file_path):
+    with h5py.File(file_path, 'r') as hf:
+        data_dict = {}
+        for key in hf.keys():
+            if isinstance(hf[key], h5py.Group):
+                # If it's a Group type, recursively load data from the group
+                data_dict[key] = load_h5_data_from_group(hf[key])
+            elif isinstance(hf[key], h5py.Dataset):
+                # If it's a byte string, decode it to a Unicode string
+                if hf[key].dtype.kind in ['O', 'S']:
+                    data_dict[key] = hf[key][()].decode('utf-8')
+                else:
+                    # For other data types, load the data directly
+                    data_dict[key] = hf[key][()]
+        return data_dict
+
+
+def load_h5_data_from_group(group):
+    data_dict = {}
+    for key in group.keys():
+        if isinstance(group[key], h5py.Group):
+            # If it's a Group type, recursively load data from the group
+            data_dict[key] = load_h5_data_from_group(group[key])
+        elif isinstance(group[key], h5py.Dataset):
+            # If it's a byte string, decode it to a Unicode string
+            if group[key].dtype.kind in ['O', 'S']:
+                data_dict[key] = group[key][()].decode('utf-8')
+            else:
+                # For other data types, load the data directly
+                data_dict[key] = group[key][()]
+    return data_dict
 
 
 # Function to get CPU information

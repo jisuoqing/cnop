@@ -1,29 +1,49 @@
 import numpy as np
+from sim_controller import find_latest_checkpoint, load_checkpoint
+import h5py
 
 
 class Burgers:
     def __init__(self, u_init, t0, **kwargs):
-        # for given initial condition u_init, evolve it to time t0 as the basic state u0
-        if not isinstance(u_init, np.ndarray):
-            raise ValueError("The u_init must be a numpy array in Burgers class.")
-        self.u_init = u_init
-        self.t0 = t0
-        self.vis = kwargs.get('vis', 0.5)
-        self.delta_t = kwargs.get('delta_t', 0.1)
-        self.delta_x = kwargs.get('delta_x', 1.0)
-        self.x = np.arange(0, len(self.u_init)) * self.delta_x
-        self.base_dir = kwargs.get('base_dir', './')
-        self.basename = kwargs.get('basename', 'burgers')
-        self.t1 = None
-        self.ut1_unperturbed = None
-        nt0 = int(self.t0 / self.delta_t + 1)
-        # now evolve the initial condition to t0, to obtain u0 which is the basic state
+        # check if there is a checkpoint file in the base_dir
+        try:
+            last_checkpoint = find_latest_checkpoint(kwargs.get('base_dir', './'),
+                                                     self.__class__.__name__ + "_checkpoint")
+        except FileNotFoundError:
+            self.restart = False
+        else:
+            self.restart = True
+            self.restart_checkpoint = last_checkpoint
+
+        # load the solver no matter if there is a checkpoint file
         import importlib
         self.solve = getattr(importlib.import_module("solvers.burgers_lib"), "solve_burgers")
-        self.u0 = self.solve(u_init, nt0, self.vis, self.delta_t, self.delta_x)
-        # now print that the class is initialized with detailed information
-        print("The basic state is evolved from the initial condition to time {}.".format(self.t0))
-        return
+
+        if self.restart:
+            # if there is a checkpoint file, load process attributes from it
+            load_checkpoint(self.restart_checkpoint, "process", self)
+            # now print that the class is initialized with detailed information
+            print("The class is initialized with the checkpoint file {}.".format(self.restart_checkpoint))
+        else:
+            # for given initial condition u_init, evolve it to time t0 as the basic state u0
+            if not isinstance(u_init, np.ndarray):
+                raise ValueError("The u_init must be a numpy array in Burgers class.")
+            self.u_init = u_init
+            self.t0 = t0
+            self.vis = kwargs.get('vis', 0.5)
+            self.delta_t = kwargs.get('delta_t', 0.1)
+            self.delta_x = kwargs.get('delta_x', 1.0)
+            self.x = np.arange(0, len(self.u_init)) * self.delta_x
+            self.base_dir = kwargs.get('base_dir', './')
+            self.basename = kwargs.get('basename', 'burgers')
+            self.t1 = None
+            self.ut1_unperturbed = None
+            nt0 = int(self.t0 / self.delta_t + 1)
+            # now evolve the initial condition to t0, to obtain u0 which is the basic state
+            self.u0 = self.solve(u_init, nt0, self.vis, self.delta_t, self.delta_x)
+            # now print that the class is initialized with detailed information
+            print("The basic state is evolved from the initial condition to time {}.".format(self.t0))
+            return
 
     def proceed(self, t1, u_pert=None):
         nt = int(t1 / self.delta_t + 1)
@@ -42,7 +62,7 @@ class Burgers:
             ut = self.solve(self.u0 + u_pert, nt, self.vis, self.delta_t, self.delta_x)
             return ut
 
-    def save_state(self, state_fn: str = None, additional_info: dict = None):
+    def save_checkpoint(self, iter0, method_info: classmethod = None):
         from solvers.simulation import Simulation
-        Simulation.save_state(self, state_fn, additional_info)
+        Simulation.save_checkpoint(self, iter0, method_info)
         return

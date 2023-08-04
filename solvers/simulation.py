@@ -178,16 +178,23 @@ class Simulation:
         return param
 
     @staticmethod
-    def save_state(self, state_fn: str = None, additional_info: dict = None):
-        if state_fn is None:
-            state_fn = "state.h5"
-        with h5py.File(self.base_dir + "/" + state_fn, 'w') as f:
+    def save_checkpoint(self, iter0: int, method_info: classmethod = None):
+        checkpoint_fn = "%s_checkpoint_%04d.h5" % (self.__class__.__name__, iter0)
+        with h5py.File(self.base_dir + "/" + checkpoint_fn, 'w') as f:
+            process_group = f.create_group('process')
             for k, v in self.__dict__.items():
+                # Don't save flags related to restart controller, otherwise the restart loop won't work
+                if k.startswith("restart"):
+                    continue
                 try:
-                    f.create_dataset(k, data=v)
+                    process_group.create_dataset(k, data=v)
                 except TypeError:
-                    warnings.warn("The attribute {} cannot be saved!".format(k))
-            if additional_info is not None:
-                for key, value in additional_info.items():
-                    f.create_dataset(key, data=value)
+                    warnings.warn("The process attribute {} cannot be saved!".format(k))
+            if method_info is not None:
+                method_group = f.create_group('method')
+                for k, v in method_info.__dict__.items():
+                    try:
+                        method_group.create_dataset(k, data=v)
+                    except TypeError:
+                        warnings.warn("The method attribute {} cannot be saved!".format(k))
         return

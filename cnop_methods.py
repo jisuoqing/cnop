@@ -1,127 +1,128 @@
 import numpy as np
+from sim_controller import load_checkpoint
 
 
-def spg2_defn(process, u_pert, t1):
-    from utils import do_projection, compute_obj
-    from grad_defn import grad_defn
+class Spg2Defn:
+    def __init__(self, process, u_pert, t1):
+        from utils import do_projection, compute_obj
+        from grad_defn import grad_defn
 
-    additional_info_name = ["u_pert", "u_pert_best", "j_best", "j_values", "j_val",
-                            "ifcnt", "igcnt", "iter0", "g", "lambda_", "cgnorm"]
+        if process.restart:
+            # load the method info from the restart checkpoint
+            load_checkpoint(process.restart_checkpoint, "method", self)
+        else:
 
-    iter0 = 0
+            self.iter0 = 0
 
-    max_float = 1.e100  # np.finfo(float).max
-    min_float = 1.e-100  # np.finfo(float).tiny
+            self.max_float = 1.e100  # np.finfo(float).max
+            self.min_float = 1.e-100  # np.finfo(float).tiny
 
-    max_iter = 300
-    ifcnt = 0
+            self.max_iter = 300
+            self.ifcnt = 0
 
-    max_ifcnt = 100000
-    igcnt = 0
+            self.max_ifcnt = 100000
+            self.igcnt = 0
 
-    eps = 1e-8
-    gamma = 0.0001
+            self.eps = 1e-8
+            self.gamma = 0.0001
 
-    # storage M = 10 recent numbers
-    j_num = 10
-    j_values = -np.inf * np.ones(j_num)
-    u_pert = do_projection(u_pert)
-    u_pert_best = u_pert.copy()
+            # storage M = 10 recent numbers
+            self.j_num = 10
+            self.j_values = -np.inf * np.ones(self.j_num)
+            self.u_pert = do_projection(u_pert)
+            self.u_pert_best = self.u_pert.copy()
 
-    # compute objective value
-    j_val = compute_obj(process, u_pert, t1)
-    j_values[0] = j_val
-    j_best = j_val
-    ifcnt += 1
+            # compute objective value
+            self.j_val = compute_obj(process, self.u_pert, t1)
+            self.j_values[0] = self.j_val
+            self.j_best = self.j_val
+            self.ifcnt += 1
 
-    # compute gradient (adjoint method)
-    g = grad_defn(process, u_pert, t1, epsilon=1e-08)
-    igcnt += 1
+            # compute gradient (adjoint method)
+            self.g = grad_defn(process, self.u_pert, t1, epsilon=1e-08)
+            self.igcnt += 1
 
-    # step-1: discriminate whether the current point is stationary
-    cg = u_pert - g
-    cg = do_projection(cg)
-    cgnorm = (np.abs(cg - u_pert)).max()
+            # step-1: discriminate whether the current point is stationary
+            cg = self.u_pert - self.g
+            cg = do_projection(cg)
+            self.cgnorm = (np.abs(cg - self.u_pert)).max()
 
-    if cgnorm != 0:
-        lambda_ = 1 / cgnorm
+            if self.cgnorm != 0:
+                self.lambda_ = 1 / self.cgnorm
 
-    # step-2:   Backtracking
-    while cgnorm > eps and iter0 <= max_iter and ifcnt <= max_ifcnt:
-        iter0 += 1
-        print("----------------------- iter", iter0, "-----------------------")
+        # step-2:   Backtracking
+        while self.cgnorm > self.eps and self.iter0 <= self.max_iter and self.ifcnt <= self.max_ifcnt:
+            self.iter0 += 1
+            print("----------------------- iter", self.iter0, "-----------------------")
 
-        # step-2.1: compute d
-        d = u_pert - lambda_ * g
-        d = do_projection(d)
-        d = d - u_pert
-        gtd = (g * d).sum()
+            # step-2.1: compute d
+            d = self.u_pert - self.lambda_ * self.g
+            d = do_projection(d)
+            d = d - self.u_pert
+            gtd = (self.g * d).sum()
 
-        # step-2.2 and step 2.3: compute alpha (lambda in paper) and u0_new,
-        j_max = j_values.max()
-        u_pert_new = u_pert + d
-        j_new = compute_obj(process, u_pert_new, t1)
-        ifcnt = ifcnt + 1
-        alpha = 1
-
-        while j_new > j_max + gamma * alpha * gtd:
-            if alpha <= 0.1:
-                alpha = alpha / 2.
-            else:
-                atemp = - gtd * alpha ** 2 / (2 * (j_new - j_val - alpha * gtd))
-                if atemp < 0.1 or atemp > 0.9 * alpha:
-                    atemp = alpha / 2.
-                alpha = atemp
-            u_pert_new = u_pert + alpha * d
+            # step-2.2 and step 2.3: compute alpha (lambda in paper) and u0_new,
+            j_max = self.j_values.max()
+            u_pert_new = self.u_pert + d
             j_new = compute_obj(process, u_pert_new, t1)
-            ifcnt += 1
+            self.ifcnt = self.ifcnt + 1
+            alpha = 1
 
-        j_val = j_new
-        j_values[np.mod(iter0, j_num)] = j_val  # store the recent j_num values
-        if j_new < j_best:
-            j_best = j_new
-            u_pert_best = u_pert_new.copy()
-        g_new = grad_defn(process, u_pert_new, t1)
-        igcnt = igcnt + 1
+            while j_new > j_max + self.gamma * alpha * gtd:
+                if alpha <= 0.1:
+                    alpha = alpha / 2.
+                else:
+                    atemp = - gtd * alpha ** 2 / (2 * (j_new - self.j_val - alpha * gtd))
+                    if atemp < 0.1 or atemp > 0.9 * alpha:
+                        atemp = alpha / 2.
+                    alpha = atemp
+                u_pert_new = self.u_pert + alpha * d
+                j_new = compute_obj(process, u_pert_new, t1)
+                self.ifcnt += 1
 
-        # step-3: compute lambda (alpha in paper)
-        s = u_pert_new - u_pert
-        y = g_new - g
-        sts = (s ** 2.).sum()
-        sty = (s * y).sum()
-        u_pert = u_pert_new.copy()
-        g = g_new.copy()
-        cg = u_pert - g
-        cg = do_projection(cg)
-        cgnorm = (np.abs(cg - u_pert)).max()
+            self.j_val = j_new
+            self.j_values[np.mod(self.iter0, self.j_num)] = self.j_val  # store the recent self.j_num values
+            if j_new < self.j_best:
+                self.j_best = j_new
+                self.u_pert_best = u_pert_new.copy()
+            g_new = grad_defn(process, u_pert_new, t1)
+            self.igcnt += 1
 
-        if sty <= 0:
-            lambda_ = max_float
-        else:
-            lambda_ = np.min((max_float, np.max((min_float, sts / sty))))
+            # step-3: compute lambda (alpha in paper)
+            s = u_pert_new - self.u_pert
+            y = g_new - self.g
+            sts = (s ** 2.).sum()
+            sty = (s * y).sum()
+            self.u_pert = u_pert_new.copy()
+            self.g = g_new.copy()
+            cg = self.u_pert - self.g
+            cg = do_projection(cg)
+            self.cgnorm = (np.abs(cg - self.u_pert)).max()
 
-        print("lambda = ", lambda_)
-        print("j_val = ", j_val)
-        print("sts = ", sts)
-        print("sty = ", sty)
-        print("cgnorm = ", cgnorm)
-
-        # save all needed information for restart with h5py
-        state_fn = "state_%04d.h5" % iter0
-        additional_info = {}
-        for name in additional_info_name:
-            additional_info[name] = eval(name)
-        process.save_state(state_fn, additional_info)
-
-    if cgnorm <= eps:
-        print('convergence')
-    else:
-        if iter0 > max_iter:
-            print('too many iterations')
-        else:
-            if ifcnt > max_ifcnt:
-                print('too many function evaluations')
+            if sty <= 0:
+                self.lambda_ = self.max_float
             else:
-                print('unknown stop')
+                self.lambda_ = np.min((self.max_float, np.max((self.min_float, sts / sty))))
 
-    return u_pert_best, j_best
+            print("lambda = ", self.lambda_)
+            print("j_val = ", self.j_val)
+            print("sts = ", sts)
+            print("sty = ", sty)
+            print("cgnorm = ", self.cgnorm)
+
+            # save all needed information for restart with h5py
+            checkpoint_fn = "checkpoint_%04d.h5" % self.iter0
+            process.save_checkpoint(self.iter0, method_info=self)
+
+        if self.cgnorm <= self.eps:
+            print('convergence')
+        else:
+            if self.iter0 > self.max_iter:
+                print('too many iterations')
+            else:
+                if self.ifcnt > self.max_ifcnt:
+                    print('too many function evaluations')
+                else:
+                    print('unknown stop')
+
+        return

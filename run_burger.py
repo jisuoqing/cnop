@@ -1,8 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from cnop_methods import spg2_defn
 from utils import usphere_sample
 from solvers.burgers import Burgers
+from cnop_methods import Spg2Defn
 
 # parameters
 t1 = 6.
@@ -22,8 +22,8 @@ nt0 = 58
 t0 = nt0 * (t1 / nt)
 
 process = Burgers(u_init, t0, vis=vis, delta_t=delta_t, delta_x=delta_x)
-u_pert_best, j_best = spg2_defn(process, u_pert, t1)
+spg2 = Spg2Defn(process, u_pert, t1)
 
-plt.plot(x, u_pert_best)
+plt.plot(x, spg2.u_pert_best)
 plt.show()
 

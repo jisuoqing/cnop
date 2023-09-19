@@ -38,7 +38,7 @@ class Simulation:
             # if there is a checkpoint file, load process attributes from it
             load_checkpoint(self.restart_checkpoint_fn, "process", self)
             # now print that the class is initialized with detailed information
-            print("The class is initialized with the checkpoint file {}.".format(self.restart_checkpoint))
+            print("The class is initialized with the checkpoint file {}.".format(self.restart_checkpoint_fn))
             return
         else:
             if u_init_fn is not None:

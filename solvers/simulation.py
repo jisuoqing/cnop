@@ -1,4 +1,4 @@
-from sim_controller import update_parameter, get_system_info
+from sim_controller import update_parameter, get_system_info, find_latest_checkpoint, load_checkpoint
 import subprocess
 import os
 import warnings
@@ -25,38 +25,55 @@ class Simulation:
         :param pert_var: The variable name to be perturbed
         :param grow_var: The variable name whose growth rate is aimed to be maximized
         """
-        if u_init_fn is not None:
-            if not os.path.exists(base_dir + "/" + u_init_fn):
-                raise ValueError("The initial condition file does not exist!")
-            self.u_init_fn = u_init_fn
-        self.base_dir = base_dir
-        self.exec_cmd = exec_cmd
-        self.param_fn = param_fn
-        # u0_fn is the file name of the basic state, which must match the output file name of the solver
-        self.u0_fn = u0_fn
-        self.pert_var = pert_var
-        self.grow_var = grow_var
 
-        self.t1 = None
-        self.ut1_unperturbed_fn = None
+        try:
+            last_checkpoint_fn = find_latest_checkpoint(base_dir, self.__class__.__name__ + "_checkpoint")
+        except FileNotFoundError:
+            self.restart = False
+        else:
+            self.restart = True
+            self.restart_checkpoint_fn = last_checkpoint_fn
 
-        if os.path.exists(self.base_dir + "/" + self.u0_fn):
-            # warnings.warn("The basic state file already exists! Deleting it now for safety.")
-            os.remove(self.base_dir + "/" + self.u0_fn)
-        # Now evolve the initial condition to t0, to obtain u0 which is the basic state
-        update_parameter(self.base_dir + "/" + self.param_fn, init_params)
-        with open('%s_basic_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
-                open('%s_basic_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
-            exec_args = shlex.split(self.exec_cmd)
-            process = subprocess.Popen(exec_args, stdout=stdout_file, stderr=stderr_file, shell=False,
-                                       cwd=self.base_dir)
-            process.wait()
-        if process.returncode != 0:
-            raise ValueError("The solver is not working properly, and no basic state file is generated!")
-        elif not os.path.exists(self.base_dir + "/" + self.u0_fn):
-            raise ValueError("The basic state file might be generated, but you might guess the file name wrong!")
-        # print("The basic state u0 is evolved from the initial condition u_init and saved as {}.".format(self.u0_fn))
-        return
+        if self.restart:
+            # if there is a checkpoint file, load process attributes from it
+            load_checkpoint(self.restart_checkpoint_fn, "process", self)
+            # now print that the class is initialized with detailed information
+            print("The class is initialized with the checkpoint file {}.".format(self.restart_checkpoint))
+            return
+        else:
+            if u_init_fn is not None:
+                if not os.path.exists(base_dir + "/" + u_init_fn):
+                    raise ValueError("The initial condition file does not exist!")
+                self.u_init_fn = u_init_fn
+            self.base_dir = base_dir
+            self.exec_cmd = exec_cmd
+            self.param_fn = param_fn
+            # u0_fn is the file name of the basic state, which must match the output file name of the solver
+            self.u0_fn = u0_fn
+            self.pert_var = pert_var
+            self.grow_var = grow_var
+
+            self.t1 = None
+            self.ut1_unperturbed_fn = None
+
+            if os.path.exists(self.base_dir + "/" + self.u0_fn):
+                # warnings.warn("The basic state file already exists! Deleting it now for safety.")
+                os.remove(self.base_dir + "/" + self.u0_fn)
+            # Now evolve the initial condition to t0, to obtain u0 which is the basic state
+            update_parameter(self.base_dir + "/" + self.param_fn, init_params)
+            with open('%s_basic_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
+                    open('%s_basic_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
+                exec_args = shlex.split(self.exec_cmd)
+                process = subprocess.Popen(exec_args, stdout=stdout_file, stderr=stderr_file, shell=False,
+                                           cwd=self.base_dir)
+                process.wait()
+            if process.returncode != 0:
+                raise ValueError("The solver is not working properly, and no basic state file is generated!")
+            elif not os.path.exists(self.base_dir + "/" + self.u0_fn):
+                raise ValueError("The basic state file might be generated, but you might guess the file name wrong!")
+            # print("The basic state u0 is evolved from the initial condition u_init and saved as {}.".format(
+            # self.u0_fn))
+            return
 
     def generate_u_pert(self, pert_mag):
         # generate a perturbation file with magnitude pert_mag
@@ -176,25 +193,3 @@ class Simulation:
             param = ds.parameters[param_name]
         del ds
         return param
-
-    @staticmethod
-    def save_checkpoint(self, iter0: int, method_info: classmethod = None):
-        checkpoint_fn = "%s_checkpoint_%04d.h5" % (self.__class__.__name__, iter0)
-        with h5py.File(self.base_dir + "/" + checkpoint_fn, 'w') as f:
-            process_group = f.create_group('process')
-            for k, v in self.__dict__.items():
-                # Don't save flags related to restart controller, otherwise the restart loop won't work
-                if k.startswith("restart"):
-                    continue
-                try:
-                    process_group.create_dataset(k, data=v)
-                except TypeError:
-                    warnings.warn("The process attribute {} cannot be saved!".format(k))
-            if method_info is not None:
-                method_group = f.create_group('method')
-                for k, v in method_info.__dict__.items():
-                    try:
-                        method_group.create_dataset(k, data=v)
-                    except TypeError:
-                        warnings.warn("The method attribute {} cannot be saved!".format(k))
-        return

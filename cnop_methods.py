@@ -1,5 +1,5 @@
 import numpy as np
-from sim_controller import load_checkpoint
+from sim_controller import load_checkpoint, save_checkpoint
 
 
 class Spg2Defn:
@@ -9,7 +9,7 @@ class Spg2Defn:
 
         if process.restart:
             # load the method info from the restart checkpoint
-            load_checkpoint(process.restart_checkpoint, "method", self)
+            load_checkpoint(process.restart_checkpoint_fn, "method", self)
         else:
 
             self.iter0 = 0
@@ -111,7 +111,7 @@ class Spg2Defn:
             print("cgnorm = ", self.cgnorm)
 
             # save all needed information for restart
-            process.save_checkpoint(self.iter0, method_info=self)
+            save_checkpoint(process=process, method=self)
 
         if self.cgnorm <= self.eps:
             print('convergence')

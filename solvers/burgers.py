@@ -6,13 +6,13 @@ class Burgers:
     def __init__(self, u_init, t0, **kwargs):
         # check if there is a checkpoint file in the base_dir
         try:
-            last_checkpoint = find_latest_checkpoint(kwargs.get('base_dir', './'),
-                                                     self.__class__.__name__ + "_checkpoint")
+            last_checkpoint_fn = find_latest_checkpoint(kwargs.get('base_dir', './'),
+                                                        self.__class__.__name__ + "_checkpoint")
         except FileNotFoundError:
             self.restart = False
         else:
             self.restart = True
-            self.restart_checkpoint = last_checkpoint
+            self.restart_checkpoint_fn = last_checkpoint_fn
 
         # load the solver no matter if there is a checkpoint file
         import importlib
@@ -20,9 +20,10 @@ class Burgers:
 
         if self.restart:
             # if there is a checkpoint file, load process attributes from it
-            load_checkpoint(self.restart_checkpoint, "process", self)
+            load_checkpoint(self.restart_checkpoint_fn, "process", self)
             # now print that the class is initialized with detailed information
-            print("The class is initialized with the checkpoint file {}.".format(self.restart_checkpoint))
+            print("The class is initialized with the checkpoint file {}.".format(self.restart_checkpoint_fn))
+            return
         else:
             # for given initial condition u_init, evolve it to time t0 as the basic state u0
             if not isinstance(u_init, np.ndarray):
@@ -60,8 +61,3 @@ class Burgers:
             # perturbation is added at time t0 and then evolved over another t1
             ut = self.solve(self.u0 + u_pert, nt, self.vis, self.delta_t, self.delta_x)
             return ut
-
-    def save_checkpoint(self, iter0, method_info: classmethod = None):
-        from solvers.simulation import Simulation
-        Simulation.save_checkpoint(self, iter0, method_info)
-        return

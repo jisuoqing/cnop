@@ -2,6 +2,7 @@ import psutil
 import os
 import glob
 import h5py
+import warnings
 
 
 def update_parameter(file_path, params, new_file_path=None):
@@ -34,6 +35,28 @@ def update_parameter(file_path, params, new_file_path=None):
         new_file.writelines(lines)
 
     # print(f"Updated file saved as {new_file_path}")
+
+
+def save_checkpoint(process, method):
+    iter0 = method.iter0
+    checkpoint_fn = "%s_checkpoint_%04d.h5" % (process.__class__.__name__, iter0)
+    with h5py.File(process.base_dir + "/" + checkpoint_fn, 'w') as f:
+        process_group = f.create_group('process')
+        for k, v in process.__dict__.items():
+            # Don't save flags related to restart controller, otherwise the restart loop won't work
+            if k.startswith("restart"):
+                continue
+            try:
+                process_group.create_dataset(k, data=v)
+            except TypeError:
+                warnings.warn("The process attribute {} cannot be saved!".format(k))
+        method_group = f.create_group('method')
+        for k, v in method.__dict__.items():
+            try:
+                method_group.create_dataset(k, data=v)
+            except TypeError:
+                warnings.warn("The method attribute {} cannot be saved!".format(k))
+    return
 
 
 def find_latest_checkpoint(base_dir, prefix):

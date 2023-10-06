@@ -24,7 +24,6 @@ def update_parameter(file_path, params, new_file_path=None):
             if line.startswith(param):
                 lines[i] = f"{param} = {value}\n"
                 found = True
-                break
 
         if not found:
             raise ValueError(f"Parameter '{param}' not found in the file.")

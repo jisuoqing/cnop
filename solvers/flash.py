@@ -2,7 +2,7 @@ from solvers.simulation import Simulation
 
 
 class Flash(Simulation):
-    def __init__(self, t0, base_dir, exec_cmd, basename, pert_var, grow_var):
+    def __init__(self, t0, base_dir, exec_cmd, basename, pert_var, grow_var, derived_fields=None):
         init_params = {
             "restart": ".false.",
             "checkpointFileNumber": 0,
@@ -21,7 +21,8 @@ class Flash(Simulation):
         }
         self.basename = basename
         u0_fn = "%s_hdf5_chk_0001" % self.basename
-        super().__init__(None, base_dir, exec_cmd, init_params, "flash.par", u0_fn, pert_var, grow_var)
+        super().__init__(None, base_dir, exec_cmd, init_params, "flash.par", u0_fn,
+                         pert_var, grow_var, derived_fields=derived_fields)
         return
 
     def proceed(self, t1, u_pert=None, u_pert_fn="u_pert.h5"):

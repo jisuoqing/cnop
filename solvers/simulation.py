@@ -60,6 +60,8 @@ class Simulation:
             self.t1 = None
             self.ut1_unperturbed_fn = None
 
+            self.is_subprocess = False
+
             if pathlib.Path(self.base_dir + "/" + self.u0_fn).exists():
                 # warnings.warn("The basic state file already exists! Deleting it now for safety.")
                 os.remove(self.base_dir + "/" + self.u0_fn)
@@ -202,12 +204,13 @@ class Simulation:
         del ds
         return param
 
-    def copy_subprocess(self, subdir: str, exclude: list = None):
+    def create_subprocess(self, subdir: str, exclude: list = None):
         # copy the object
         if exclude is None:
             exclude = []
         import copy
         process_copy = copy.deepcopy(self)
+        process_copy.is_subprocess = True
         process_copy.base_dir = self.base_dir + "/" + subdir
 
         # always exclude subdir by default. Note exclude accept path relative to base_dir
@@ -219,4 +222,9 @@ class Simulation:
         os.mkdir(process_copy.base_dir)
         os.system("rsync -a " + self.base_dir + "/* " + process_copy.base_dir +
                   " --exclude " + " --exclude ".join('\'' + item + '\'' for item in exclude))
+        print("The subprocess is created in the directory {}.".format(process_copy.base_dir))
         return process_copy
+
+    def __del__(self):
+        if self.is_subprocess:
+            shutil.rmtree(self.base_dir)

@@ -54,3 +54,9 @@ class Flash(Simulation):
         delete_fn = ["flash.dat", self.basename + ".log"]
         ut = super().proceed_simulation(params, t1, exec_cmd, u_pert, u_pert_fn, ut_fn, delete_fn)
         return ut
+
+    def copy_subprocess(self, subdir: str, exclude: list = None):
+        if exclude is None:
+            exclude = []
+        return super().copy_subprocess(subdir, exclude=exclude + ["*.o", "*.log", "*.F90", "*h",
+                                                                  "Makefile*", "*py", "*mod", "*.c"])

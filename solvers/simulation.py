@@ -6,6 +6,8 @@ import shlex
 import yt
 import numpy as np
 import h5py
+import pathlib
+import shutil
 
 yt.set_log_level("error")
 
@@ -43,7 +45,7 @@ class Simulation:
             return
         else:
             if u_init_fn is not None:
-                if not os.path.exists(base_dir + "/" + u_init_fn):
+                if not pathlib.Path(base_dir + "/" + u_init_fn).exists():
                     raise ValueError("The initial condition file does not exist!")
                 self.u_init_fn = u_init_fn
             self.base_dir = base_dir
@@ -58,7 +60,7 @@ class Simulation:
             self.t1 = None
             self.ut1_unperturbed_fn = None
 
-            if os.path.exists(self.base_dir + "/" + self.u0_fn):
+            if pathlib.Path(self.base_dir + "/" + self.u0_fn).exists():
                 # warnings.warn("The basic state file already exists! Deleting it now for safety.")
                 os.remove(self.base_dir + "/" + self.u0_fn)
             # Now evolve the initial condition to t0, to obtain u0 which is the basic state
@@ -71,7 +73,7 @@ class Simulation:
                 process.wait()
             if process.returncode != 0:
                 raise ValueError("The solver is not working properly, and no basic state file is generated!")
-            elif not os.path.exists(self.base_dir + "/" + self.u0_fn):
+            elif not pathlib.Path(self.base_dir + "/" + self.u0_fn).exists():
                 raise ValueError("The basic state file might be generated, but you might guess the file name wrong!")
             # print("The basic state u0 is evolved from the initial condition u_init and saved as {}.".format(
             # self.u0_fn))
@@ -98,7 +100,7 @@ class Simulation:
         if u_pert is not None:
             if u_pert_fn is None:
                 raise ValueError("The perturbation file name is not specified!")
-            if os.path.exists(self.base_dir + "/" + u_pert_fn):
+            if pathlib.Path(self.base_dir + "/" + u_pert_fn).exists():
                 # warnings.warn("The perturbation file already exists! Overwriting it.")
                 os.remove(self.base_dir + "/" + u_pert_fn)
             with h5py.File(self.base_dir + "/" + u_pert_fn, 'w') as f:
@@ -112,21 +114,23 @@ class Simulation:
             if self.ut1_unperturbed_fn is not None and self.t1 == t1:
                 # if the unperturbed solution at t1 is already computed, then no need to rerun sim, jut return it
                 t1_infile = self.yt_read_parameter(self.base_dir, self.ut1_unperturbed_fn, 'current_time')
-                if np.isclose(t1, t1_infile, atol=np.min((t1, t1_infile))*1e-3):  # allow 0.1% tolerance due to timestep
-                    ut = self.yt_read_solution(self.base_dir, self.ut1_unperturbed_fn, self.grow_var, self.derived_fields)
+                if np.isclose(t1, t1_infile, atol=np.min((t1, t1_infile))*1e-2):  # allow 1% tolerance due to timestep
+                    ut = self.yt_read_solution(self.base_dir, self.ut1_unperturbed_fn, self.grow_var,
+                                               self.derived_fields)
                     # print("The unperturbed solution at t1 is already computed, and is read from file {}.".format(
                     # self.ut1_unperturbed_fn))
                     return ut
                 else:
-                    warnings.warn("The unperturbed solution at t1 is already computed, but the time does not match! "
-                                  "Deleting it now for safety and will recompute it.")
+                    warnings.warn("The unperturbed solution at t1 = %f is already computed, but the time does not "
+                                  "match the requested t1 = %f!  Deleting it now for safety and will recompute it." %
+                                  (t1_infile, t1))
                     os.remove(self.base_dir + "/" + self.ut1_unperturbed_fn)
                     self.t1 = None
                     self.ut1_unperturbed_fn = None
 
         # Now update the parameter file
         update_parameter(self.base_dir + "/" + self.param_fn, params)
-        if os.path.exists(self.base_dir + "/" + ut_fn):
+        if pathlib.Path(self.base_dir + "/" + ut_fn).exists():
             # warnings.warn("The evolving state file already exists! Deleting it now for safety.")
             os.remove(self.base_dir + "/" + ut_fn)
 
@@ -152,7 +156,7 @@ class Simulation:
                 raise ValueError("The solver is not working properly after a 2nd trial, and no evolving state file is "
                                  "generated!")
 
-        if not os.path.exists(self.base_dir + "/" + ut_fn):
+        if not pathlib.Path(self.base_dir + "/" + ut_fn).exists():
             raise ValueError("The evolving state file might be generated, but you might guess the file name wrong!")
         # print("The ut state is evolved from the basic state u0 and saved as {}.".format(ut_fn))
 
@@ -197,3 +201,22 @@ class Simulation:
             param = ds.parameters[param_name]
         del ds
         return param
+
+    def copy_subprocess(self, subdir: str, exclude: list = None):
+        # copy the object
+        if exclude is None:
+            exclude = []
+        import copy
+        process_copy = copy.deepcopy(self)
+        process_copy.base_dir = self.base_dir + "/" + subdir
+
+        # always exclude subdir by default. Note exclude accept path relative to base_dir
+        exclude.append(subdir)
+
+        # copy all the files in the base_dir to the subdir, but excluding folders
+        if pathlib.Path(process_copy.base_dir).exists():
+            shutil.rmtree(process_copy.base_dir)
+        os.mkdir(process_copy.base_dir)
+        os.system("rsync -a " + self.base_dir + "/* " + process_copy.base_dir +
+                  " --exclude " + " --exclude ".join('\'' + item + '\'' for item in exclude))
+        return process_copy

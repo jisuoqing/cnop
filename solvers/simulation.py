@@ -89,11 +89,19 @@ class Simulation:
         del ds
         return u_pert
 
-    def proceed_simulation(self, params, t1, exec_cmd=None, u_pert=None, u_pert_fn=None, ut_fn=None, delete_fn=None):
+    def proceed_simulation(self, params, t1, exec_cmd=None, u_pert=None, u_pert_fn=None,
+                           ut_fn=None, delete_fn=None, fork_id=None, fork_dir_exclude=None):
         # evolve the basic state to time t1, with perturbation u_pert. t1 is specified in params
         # Note that only when we actually run the simulation, we need save u_pert into a file
         if t1 not in params.values():
             raise ValueError("The final time is not included in the input parameter!")
+
+        old_base_dir = self.base_dir
+        if fork_id is not None:
+            # create a separate run in a sub folder
+            fork_dir = self.base_dir + "/fork_%d" % fork_id
+            self.make_fork_dir(fork_dir, fork_dir_exclude)
+            self.base_dir = fork_dir
 
         if exec_cmd is not None:
             # if a different command is needed for restarting
@@ -116,7 +124,7 @@ class Simulation:
             if self.ut1_unperturbed_fn is not None and self.t1 == t1:
                 # if the unperturbed solution at t1 is already computed, then no need to rerun sim, jut return it
                 t1_infile = self.yt_read_parameter(self.base_dir, self.ut1_unperturbed_fn, 'current_time')
-                if np.isclose(t1, t1_infile, atol=np.min((t1, t1_infile))*1e-2):  # allow 1% tolerance due to timestep
+                if np.isclose(t1, t1_infile, atol=np.min((t1, t1_infile)) * 1e-2):  # allow 1% tolerance due to timestep
                     ut = self.yt_read_solution(self.base_dir, self.ut1_unperturbed_fn, self.grow_var,
                                                self.derived_fields)
                     # print("The unperturbed solution at t1 is already computed, and is read from file {}.".format(
@@ -182,14 +190,19 @@ class Simulation:
 
         # Return the evolving state ut
         ut = self.yt_read_solution(self.base_dir, ut_fn, self.grow_var, self.derived_fields)
+
+        # Change back to old base_dir and delete fork_id
+        if fork_id is not None:
+            shutil.rmtree(self.base_dir)
+            self.base_dir = old_base_dir
         return ut
 
     @staticmethod
     def yt_read_solution(base_dir, fn, grow_var, derived_fields=None):
         # Return the evolving state ut as one-dimensional array, since its spatial info is not needed
-        if derived_fields is not None:
-            derived_fields()
         ds = yt.load(base_dir + "/" + fn)
+        if derived_fields is not None:
+            derived_fields(ds)
         solution = ds.all_data()[grow_var].v
         del ds
         return solution
@@ -204,27 +217,19 @@ class Simulation:
         del ds
         return param
 
-    def create_subprocess(self, subdir: str, exclude: list = None):
+    def make_fork_dir(self, fork_dir: str, fork_dir_exclude: list = None):
         # copy the object
-        if exclude is None:
-            exclude = []
-        import copy
-        process_copy = copy.deepcopy(self)
-        process_copy.is_subprocess = True
-        process_copy.base_dir = self.base_dir + "/" + subdir
+        if fork_dir_exclude is None:
+            fork_dir_exclude = []
 
-        # always exclude subdir by default. Note exclude accept path relative to base_dir
-        exclude.append(subdir)
+        # always exclude fork_id by default. Note exclude accept path relative to base_dir
+        fork_dir_exclude.append("fork_*")
 
-        # copy all the files in the base_dir to the subdir, but excluding folders
-        if pathlib.Path(process_copy.base_dir).exists():
-            shutil.rmtree(process_copy.base_dir)
-        os.mkdir(process_copy.base_dir)
-        os.system("rsync -a " + self.base_dir + "/* " + process_copy.base_dir +
-                  " --exclude " + " --exclude ".join('\'' + item + '\'' for item in exclude))
-        print("The subprocess is created in the directory {}.".format(process_copy.base_dir))
-        return process_copy
-
-    def __del__(self):
-        if self.is_subprocess:
-            shutil.rmtree(self.base_dir)
+        # copy all the files in the base_dir to the fork_id, but excluding folders
+        if pathlib.Path(fork_dir).exists():
+            shutil.rmtree(fork_dir)
+        os.mkdir(fork_dir)
+        os.system("rsync -a " + self.base_dir + "/* " + fork_dir +
+                  " --exclude " + " --exclude ".join('\'' + item + '\'' for item in fork_dir_exclude))
+        # check the directory does exist
+        return

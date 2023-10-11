@@ -25,7 +25,7 @@ class Flash(Simulation):
                          pert_var, grow_var, derived_fields=derived_fields)
         return
 
-    def proceed(self, t1, u_pert=None, u_pert_fn="u_pert.h5"):
+    def proceed(self, t1, u_pert=None, u_pert_fn="u_pert.h5", fork_id=None, fork_dir_exclude=None):
         exec_cmd = self.exec_cmd  # Flash does not need a different command for restarting
         if u_pert is None:
             cnop_do_inject = ".false."
@@ -52,11 +52,10 @@ class Flash(Simulation):
 
         # Delete FLASH log and .dat files which will not be overwritten and will increase in size if not deleted
         delete_fn = ["flash.dat", self.basename + ".log"]
-        ut = super().proceed_simulation(params, t1, exec_cmd, u_pert, u_pert_fn, ut_fn, delete_fn)
-        return ut
+        if fork_dir_exclude is None:
+            fork_dir_exclude = []
+        fork_dir_exclude += ["*.o", "*.log", "*.F90", "*h", "Makefile*", "*py", "*mod", "*.c"]
 
-    def create_subprocess(self, subdir: str, exclude: list = None):
-        if exclude is None:
-            exclude = []
-        return super().create_subprocess(subdir, exclude=exclude + ["*.o", "*.log", "*.F90", "*h",
-                                                                  "Makefile*", "*py", "*mod", "*.c"])
+        ut = super().proceed_simulation(params, t1, exec_cmd, u_pert, u_pert_fn, ut_fn, delete_fn,
+                                        fork_id=fork_id, fork_dir_exclude=fork_dir_exclude)
+        return ut

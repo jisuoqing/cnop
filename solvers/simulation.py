@@ -40,6 +40,8 @@ class Simulation:
         if self.restart:
             # if there is a checkpoint file, load process attributes from it
             load_checkpoint(self.restart_checkpoint_fn, "process", self)
+            # derived_field function is not saved in the checkpoint file, so we need to reassign it
+            self.derived_fields = derived_fields
             # now print that the class is initialized with detailed information
             print("The class is initialized with the checkpoint file {}.".format(self.restart_checkpoint_fn))
             return

@@ -43,7 +43,8 @@ def save_checkpoint(process, method):
         process_group = f.create_group('process')
         for k, v in process.__dict__.items():
             # Don't save flags related to restart controller, otherwise the restart loop won't work
-            if k.startswith("restart"):
+            # Do not save derived_field function as well
+            if k.startswith("restart") or callable(k):
                 continue
             try:
                 process_group.create_dataset(k, data=v)

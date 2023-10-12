@@ -78,6 +78,9 @@ class Simulation:
             self.link_list = list(set(link_list))
             self.copy_list = list(set(copy_list))
 
+            if len(self.link_list) + len(self.copy_list) != len(set(self.link_list + self.copy_list)):
+                raise ValueError("The link_list and copy_list share the same item!")
+
             if pathlib.Path(self.base_dir + "/" + self.u0_fn).exists():
                 # warnings.warn("The basic state file already exists! Deleting it now for safety.")
                 os.remove(self.base_dir + "/" + self.u0_fn)
@@ -209,7 +212,7 @@ class Simulation:
 
         # Change back to old base_dir and delete fork_id
         if fork_id is not None:
-            shutil.rmtree(self.base_dir)
+            # shutil.rmtree(self.base_dir)
             self.base_dir = old_base_dir
         return ut
 

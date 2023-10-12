@@ -1,9 +1,10 @@
 import numpy as np
 from multiprocessing import Pool
+import logging
 
 
 def grad_defn(process, u_pert, t, epsilon=1e-08, nprocs=1):
-    print("Computing gradient...")
+    # print("Computing gradient...")
     # compute the objective value
     ut = process.proceed(t)
     ut_pert = process.proceed(t, u_pert=u_pert)
@@ -31,7 +32,7 @@ def grad_defn(process, u_pert, t, epsilon=1e-08, nprocs=1):
 def compute_g(fork_id, index, u_pert, epsilon, t, ut, j_val, process):
     u_pert_eps = u_pert.copy()
     u_pert_eps[index] += epsilon
-    print("Computing gradient for index {} at fork {}".format(index, fork_id))
+    # print("Computing gradient for index {} at fork {}".format(index, fork_id))
     ut_pert_eps = process.proceed(t, u_pert=u_pert_eps, fork_id=fork_id)
     j_pert = -((ut_pert_eps - ut) ** 2).sum()
     return index, (j_pert - j_val) / epsilon

@@ -43,8 +43,8 @@ def save_checkpoint(process, method):
         process_group = f.create_group('process')
         for k, v in process.__dict__.items():
             # Don't save flags related to restart controller, otherwise the restart loop won't work
-            # Do not save derived_field function as well
-            if k.startswith("restart") or callable(k):
+            # Do not save yt_derived_field function as well
+            if k.startswith("restart") or k == "yt_derived_fields":
                 continue
             try:
                 process_group.create_dataset(k, data=v)
@@ -110,8 +110,16 @@ def load_h5_data_from_group(group):
             # If it's a Group type, recursively load data from the group
             data_dict[key] = load_h5_data_from_group(group[key])
         elif isinstance(group[key], h5py.Dataset):
-            # If it's a byte string, decode it to a Unicode string
-            if group[key].dtype.kind in ['O', 'S']:
+            # Check if the data is an object type (dtype 'O')
+            if group[key].dtype.kind == 'O':
+                # If it's an object type, check if it's a single string or a list
+                if group[key].shape == ():
+                    data_dict[key] = group[key][()].decode('utf-8')
+                else:
+                    # If it's a list of bytes, decode each item
+                    data_dict[key] = [item.decode('utf-8') for item in group[key][()]]
+            elif group[key].dtype.kind in ['S', 'U']:
+                # If it's a byte or unicode string, decode it to a Unicode string
                 data_dict[key] = group[key][()].decode('utf-8')
             else:
                 # For other data types, load the data directly

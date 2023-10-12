@@ -2,7 +2,8 @@ from solvers.simulation import Simulation
 
 
 class Flash(Simulation):
-    def __init__(self, t0, base_dir, exec_cmd, basename, pert_var, grow_var, derived_fields=None):
+    def __init__(self, t0, base_dir, exec_cmd, basename, pert_var, grow_var, yt_derived_fields=None,
+                 link_list=None, copy_list=None):
         init_params = {
             "restart": ".false.",
             "checkpointFileNumber": 0,
@@ -21,11 +22,15 @@ class Flash(Simulation):
         }
         self.basename = basename
         u0_fn = "%s_hdf5_chk_0001" % self.basename
+        if copy_list is None:
+            copy_list = []
+        copy_list.append("flash4")  # Flash executable
+
         super().__init__(None, base_dir, exec_cmd, init_params, "flash.par", u0_fn,
-                         pert_var, grow_var, derived_fields=derived_fields)
+                         pert_var, grow_var, yt_derived_fields=yt_derived_fields, link_list=link_list, copy_list=copy_list)
         return
 
-    def proceed(self, t1, u_pert=None, u_pert_fn="u_pert.h5", fork_id=None, fork_dir_exclude=None):
+    def proceed(self, t1, u_pert=None, u_pert_fn="u_pert.h5", fork_id=None):
         exec_cmd = self.exec_cmd  # Flash does not need a different command for restarting
         if u_pert is None:
             cnop_do_inject = ".false."
@@ -52,10 +57,6 @@ class Flash(Simulation):
 
         # Delete FLASH log and .dat files which will not be overwritten and will increase in size if not deleted
         delete_fn = ["flash.dat", self.basename + ".log"]
-        if fork_dir_exclude is None:
-            fork_dir_exclude = []
-        fork_dir_exclude += ["*.o", "*.log", "*.F90", "*h", "Makefile*", "*py", "*mod", "*.c"]
 
-        ut = super().proceed_simulation(params, t1, exec_cmd, u_pert, u_pert_fn, ut_fn, delete_fn,
-                                        fork_id=fork_id, fork_dir_exclude=fork_dir_exclude)
+        ut = super().proceed_simulation(params, t1, exec_cmd, u_pert, u_pert_fn, ut_fn, delete_fn, fork_id=fork_id)
         return ut

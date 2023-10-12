@@ -14,16 +14,16 @@ def derived_fields(ds):
 # avoid running the following script when importing it by multiprocessing
 if __name__ == "__main__":
 
-    problem = "cloud_crushing"
+    problem = "cnop1d"
 
     if problem == "cnop1d":
 
         t0 = 10.
-        flash = Flash(t0, "../flash4/object", "mpirun -np 4 ./flash4",
+        flash = Flash(t0, "../flash4/object", "mpirun -np 2 ./flash4",
                       "cnop1d", "dens", "dens")
         u_pert = flash.generate_u_pert(pert_mag=0.1)
         t1 = 30.
-        spg2 = Spg2Defn(flash, u_pert, t1)
+        spg2 = Spg2Defn(flash, u_pert, t1, nprocs=4)
         # save the result
         np.savez("flash_u_pert_best.npz", u_pert_best=spg2.u_pert_best, j_best=spg2.j_best)
 
@@ -32,7 +32,8 @@ if __name__ == "__main__":
         print("Initializing Flash now")
         t0 = 0.0
         flash = Flash(t0, "../flash4/object", "mpirun --oversubscribe -np 12 ./flash4",
-                      "cloud_crushing", "dens", "cool_dens", derived_fields=derived_fields)
+                      "cloud_crushing", "dens", "cool_dens", yt_derived_fields=derived_fields,
+                      link_list=["cool_func.dat"])
         print("Generating perturbation")
         u_pert = flash.generate_u_pert(pert_mag=1e-3)
         t1 = 0.1

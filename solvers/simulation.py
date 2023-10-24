@@ -244,3 +244,10 @@ class Simulation:
         # p.wait()
         os.system("cp -r " + self.base_dir + "/" + (" " + self.base_dir + "/").join(self.copy_list) + " " + fork_dir)
         return
+
+    def remove_fork_dirs(self):
+        # remove all fork directories
+        for fn in os.listdir(self.base_dir):
+            if fn.startswith("fork_"):
+                shutil.rmtree(self.base_dir + "/" + fn)
+        return

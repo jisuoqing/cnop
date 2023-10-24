@@ -20,6 +20,9 @@ def grad_defn(process, u_pert, t, epsilon=1e-08, nprocs=1):
                                [(fork_id, index, u_pert, epsilon, t, ut, j_val, process)
                                 for fork_id, index in enumerate(all_index)])
 
+    # Remove all fork directory after g is computed
+    process.remove_fork_dirs()
+
     # Process the results and update 'g'
     g = np.zeros(u_pert.shape)
     for index, value in results:

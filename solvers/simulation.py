@@ -242,7 +242,9 @@ class Simulation:
             shutil.rmtree(fork_dir)
         os.mkdir(fork_dir)
         # subprocess is needed to enter the fork_dir and create symbolic links
-        p = subprocess.Popen(["ln", "-s", "../" + "../".join(self.link_list)], cwd=fork_dir)
-        p.wait()
+        for fn in self.link_list:
+            subprocess.run(["ln", "-s", "../" + fn, "."], cwd=fork_dir)
+        # p = subprocess.Popen(["ln", "-s", " ../" + " ../".join(self.link_list), '.'], cwd=fork_dir)
+        # p.wait()
         os.system("cp -r " + self.base_dir + "/" + (" " + self.base_dir + "/").join(self.copy_list) + " " + fork_dir)
         return

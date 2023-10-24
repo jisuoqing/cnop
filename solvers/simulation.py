@@ -2,7 +2,6 @@ from sim_controller import update_parameter, get_system_info, find_latest_checkp
 import subprocess
 import os
 import warnings
-import shlex
 import yt
 import numpy as np
 import h5py
@@ -88,8 +87,7 @@ class Simulation:
             update_parameter(self.base_dir + "/" + self.param_fn, init_params)
             with open('%s_basic_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
                     open('%s_basic_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
-                exec_args = shlex.split(self.exec_cmd)
-                process = subprocess.Popen(exec_args, stdout=stdout_file, stderr=stderr_file, shell=False,
+                process = subprocess.Popen(self.exec_cmd, stdout=stdout_file, stderr=stderr_file, shell=True,
                                            cwd=self.base_dir)
                 process.wait()
             if process.returncode != 0:
@@ -166,8 +164,7 @@ class Simulation:
         # Now start the simulation
         with open('%s_evolving_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
                 open('%s_evolving_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
-            exec_args = shlex.split(self.exec_cmd)
-            process = subprocess.Popen(exec_args, stdout=stdout_file, stderr=stderr_file, shell=False,
+            process = subprocess.Popen(self.exec_cmd, stdout=stdout_file, stderr=stderr_file, shell=True,
                                        cwd=self.base_dir)
             process.wait()
 
@@ -177,8 +174,7 @@ class Simulation:
             print("Executing command: {}".format(self.exec_cmd))
             with open('%s_evolving_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
                     open('%s_evolving_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
-                exec_args = shlex.split(self.exec_cmd)
-                process = subprocess.Popen(exec_args, stdout=stdout_file, stderr=stderr_file, shell=False,
+                process = subprocess.Popen(self.exec_cmd, stdout=stdout_file, stderr=stderr_file, shell=True,
                                            cwd=self.base_dir)
                 process.wait()
             if process.returncode != 0:

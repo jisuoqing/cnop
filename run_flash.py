@@ -31,12 +31,12 @@ if __name__ == "__main__":
 
         print("Initializing Flash now")
         t0 = 0.0
-        flash = Flash(t0, "../flash4/object", "mpirun --oversubscribe -np 6 ./flash4",
+        flash = Flash(t0, "../flash4/object", "mpirun -np 6 ./flash4",
                       "cloud_crushing", "dens", "cool_dens", yt_derived_fields=derived_fields,
                       link_list=["cool_func.dat"])
         print("Generating perturbation")
         u_pert = flash.generate_u_pert(pert_mag=1e-3)
-        t1 = 0.1
+        t1 = 50.
         # first, feeding in all-space perturbations to make sure the sim likes it
         # flash.proceed(t1 * 0.1, u_pert=u_pert, fork_id=100)
 

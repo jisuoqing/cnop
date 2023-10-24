@@ -85,8 +85,8 @@ class Simulation:
                 os.remove(self.base_dir + "/" + self.u0_fn)
             # Now evolve the initial condition to t0, to obtain u0 which is the basic state
             update_parameter(self.base_dir + "/" + self.param_fn, init_params)
-            with open('%s_basic_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
-                    open('%s_basic_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
+            with open('%s/%s_basic_state_stdout.txt' % (self.base_dir, self.__class__.__name__), 'w') as stdout_file, \
+                    open('%s/%s_basic_state_stderr.txt' % (self.base_dir, self.__class__.__name__), 'w') as stderr_file:
                 process = subprocess.Popen(self.exec_cmd, stdout=stdout_file, stderr=stderr_file, shell=True,
                                            cwd=self.base_dir)
                 process.wait()
@@ -162,8 +162,10 @@ class Simulation:
             os.remove(self.base_dir + "/" + ut_fn)
 
         # Now start the simulation
-        with open('%s_evolving_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
-                open('%s_evolving_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
+        with open('%s/%s_evolving_state_stdout.txt' %
+                  (self.base_dir, self.__class__.__name__), 'w') as stdout_file, \
+                open('%s/%s_evolving_state_stderr.txt' %
+                     (self.base_dir, self.__class__.__name__), 'w') as stderr_file:
             process = subprocess.Popen(self.exec_cmd, stdout=stdout_file, stderr=stderr_file, shell=True,
                                        cwd=self.base_dir)
             process.wait()
@@ -172,8 +174,10 @@ class Simulation:
             print("The solver is not working properly! Dump system info and retrying...")
             get_system_info()
             print("Executing command: {}".format(self.exec_cmd))
-            with open('%s_evolving_state_stdout.txt' % self.__class__.__name__, 'w') as stdout_file, \
-                    open('%s_evolving_state_stderr.txt' % self.__class__.__name__, 'w') as stderr_file:
+            with open('%s/%s_evolving_state_stdout.txt' %
+                      (self.base_dir, self.__class__.__name__), 'w') as stdout_file, \
+                    open('%s/%s_evolving_state_stderr.txt' %
+                         (self.base_dir, self.__class__.__name__), 'w') as stderr_file:
                 process = subprocess.Popen(self.exec_cmd, stdout=stdout_file, stderr=stderr_file, shell=True,
                                            cwd=self.base_dir)
                 process.wait()

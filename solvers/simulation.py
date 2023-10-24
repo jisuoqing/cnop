@@ -181,6 +181,7 @@ class Simulation:
                 process = subprocess.Popen(self.exec_cmd, stdout=stdout_file, stderr=stderr_file, shell=True,
                                            cwd=self.base_dir)
                 process.wait()
+
             if process.returncode != 0:
                 raise ValueError("The solver is not working properly after a 2nd trial, and no evolving state file is "
                                  "generated!")
@@ -212,7 +213,7 @@ class Simulation:
 
         # Change back to old base_dir and delete fork_id
         if fork_id is not None:
-            # shutil.rmtree(self.base_dir)
+            shutil.rmtree(self.base_dir, ignore_errors=True)
             self.base_dir = old_base_dir
         return ut
 
@@ -239,7 +240,7 @@ class Simulation:
     def make_fork_dir(self, fork_dir: str):
         # copy all the files in the base_dir to the fork_id, but excluding folders
         if pathlib.Path(fork_dir).exists():
-            shutil.rmtree(fork_dir)
+            shutil.rmtree(fork_dir, ignore_errors=True)
         os.mkdir(fork_dir)
         # subprocess is needed to enter the fork_dir and create symbolic links
         for fn in self.link_list:
@@ -253,5 +254,5 @@ class Simulation:
         # remove all fork directories
         for fn in os.listdir(self.base_dir):
             if fn.startswith("fork_"):
-                shutil.rmtree(self.base_dir + "/" + fn)
+                shutil.rmtree(self.base_dir + "/" + fn, ignore_errors=True)
         return

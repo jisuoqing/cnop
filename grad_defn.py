@@ -1,6 +1,5 @@
 import numpy as np
 from multiprocessing import Pool
-import logging
 
 
 def grad_defn(process, u_pert, t, epsilon=1e-08, nprocs=1):

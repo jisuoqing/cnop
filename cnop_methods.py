@@ -1,11 +1,15 @@
 import numpy as np
 from sim_controller import load_checkpoint, save_checkpoint
+from mpi4py import MPI
 
 
 class Spg2Defn:
-    def __init__(self, process, u_pert, t1, nprocs=1):
+    def __init__(self, process, u_pert, t1):
         from utils import do_projection, compute_obj
         from grad_defn import grad_defn
+
+        self.comm = MPI.COMM_WORLD
+        self.rank = self.comm.Get_rank()
 
         if process.restart:
             # load the method info from the restart checkpoint
@@ -33,13 +37,18 @@ class Spg2Defn:
             self.u_pert_best = self.u_pert.copy()
 
             # compute objective value
-            self.j_val = compute_obj(process, self.u_pert, t1)
+            if self.rank == 0:
+                self.j_val = compute_obj(process, self.u_pert, t1)
+                self.comm.Bcast(self.j_val, root=0)
+            else:
+                self.j_val = np.empty(1, dtype=float)
+                self.comm.Bcast(self.j_val, root=0)
             self.j_values[0] = self.j_val
             self.j_best = self.j_val
             self.ifcnt += 1
 
             # compute gradient (adjoint method)
-            self.g = grad_defn(process, self.u_pert, t1, epsilon=1e-08, nprocs=nprocs)
+            self.g = grad_defn(process, self.u_pert, t1, epsilon=1e-08)
             self.igcnt += 1
 
             # step-1: discriminate whether the current point is stationary
@@ -53,7 +62,8 @@ class Spg2Defn:
         # step-2:   Backtracking
         while self.cgnorm > self.eps and self.iter0 <= self.max_iter and self.ifcnt <= self.max_ifcnt:
             self.iter0 += 1
-            print("----------------------- iter", self.iter0, "-----------------------")
+            if self.rank == 0:
+                print("----------------------- iter", self.iter0, "-----------------------")
 
             # step-2.1: compute d
             d = self.u_pert - self.lambda_ * self.g
@@ -64,7 +74,12 @@ class Spg2Defn:
             # step-2.2 and step 2.3: compute alpha (lambda in paper) and u0_new,
             j_max = self.j_values.max()
             u_pert_new = self.u_pert + d
-            j_new = compute_obj(process, u_pert_new, t1)
+            if self.rank == 0:
+                j_new = compute_obj(process, u_pert_new, t1)
+                self.comm.Bcast(j_new, root=0)
+            else:
+                j_new = np.empty(1, dtype=float)
+                self.comm.Bcast(j_new, root=0)
             self.ifcnt = self.ifcnt + 1
             alpha = 1
 
@@ -77,7 +92,12 @@ class Spg2Defn:
                         atemp = alpha / 2.
                     alpha = atemp
                 u_pert_new = self.u_pert + alpha * d
-                j_new = compute_obj(process, u_pert_new, t1)
+                if self.rank == 0:
+                    j_new = compute_obj(process, u_pert_new, t1)
+                    self.comm.Bcast(j_new, root=0)
+                else:
+                    j_new = np.empty(1, dtype=float)
+                    self.comm.Bcast(j_new, root=0)
                 self.ifcnt += 1
 
             self.j_val = j_new
@@ -85,7 +105,7 @@ class Spg2Defn:
             if j_new < self.j_best:
                 self.j_best = j_new
                 self.u_pert_best = u_pert_new.copy()
-            g_new = grad_defn(process, u_pert_new, t1, nprocs=nprocs)
+            g_new = grad_defn(process, u_pert_new, t1)
             self.igcnt += 1
 
             # step-3: compute lambda (alpha in paper)
@@ -104,24 +124,28 @@ class Spg2Defn:
             else:
                 self.lambda_ = np.min((self.max_float, np.max((self.min_float, sts / sty))))
 
-            print("lambda = ", self.lambda_)
-            print("j_val = ", self.j_val)
-            print("sts = ", sts)
-            print("sty = ", sty)
-            print("cgnorm = ", self.cgnorm)
-
             # save all needed information for restart
-            save_checkpoint(process=process, method=self)
+            if self.rank == 0:
+                print("lambda = ", self.lambda_)
+                print("j_val = ", self.j_val)
+                print("sts = ", sts)
+                print("sty = ", sty)
+                print("cgnorm = ", self.cgnorm)
+                save_checkpoint(process=process, method=self)
 
-        if self.cgnorm <= self.eps:
-            print('convergence')
-        else:
-            if self.iter0 > self.max_iter:
-                print('too many iterations')
+            # set MPI barrier to make sure all processes are on the same page
+            self.comm.Barrier()
+
+        if self.rank == 0:
+            if self.cgnorm <= self.eps:
+                print('convergence')
             else:
-                if self.ifcnt > self.max_ifcnt:
-                    print('too many function evaluations')
+                if self.iter0 > self.max_iter:
+                    print('too many iterations')
                 else:
-                    print('unknown stop')
+                    if self.ifcnt > self.max_ifcnt:
+                        print('too many function evaluations')
+                    else:
+                        print('unknown stop')
 
         return

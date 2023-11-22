@@ -41,8 +41,7 @@ def grad_defn(process, u_pert, t, epsilon=1e-08):
 
     g_local = np.zeros(shape)
     for index in my_indices:
-        value = compute_g(mpi_rank, index, u_pert, epsilon, t, ut, j_val, process)
-        g_local[index] = value
+        g_local[index] = compute_g(mpi_rank, index, u_pert, epsilon, t, ut, j_val, process)
 
     all_g_local = mpi_comm.gather(g_local, root=0)
 

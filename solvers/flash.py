@@ -2,7 +2,7 @@ from solvers.simulation import Simulation
 
 
 class Flash(Simulation):
-    def __init__(self, t0, base_dir, exec_name, exec_nproc,
+    def __init__(self, t0, base_dir, exec_command, wrapper_nproc,
                  basename, pert_var, grow_var, yt_derived_fields=None,
                  link_list=None, copy_list=None):
         init_params = {
@@ -27,19 +27,19 @@ class Flash(Simulation):
             copy_list = []
         copy_list.append("flash4")  # Flash executable
 
-        exec_args = []
-        exec_finish_check_fn = f"{basename}.log"
+        exec_args = ""
+        wrapper_finish_check_fn = u0_fn
         super().__init__(None, base_dir,
-                         exec_name, exec_args, exec_nproc, exec_finish_check_fn,
+                         exec_command, exec_args, wrapper_nproc, wrapper_finish_check_fn,
                          init_params, "flash.par", u0_fn,
                          pert_var, grow_var, yt_derived_fields=yt_derived_fields,
                          link_list=link_list, copy_list=copy_list)
         return
 
     def proceed(self, t1, u_pert=None, u_pert_fn="u_pert.h5", fork_id=None):
-        exec_name = self.exec_name  # Flash does not need a different command for restarting
-        exec_args = self.exec_args
-        exec_nproc = self.exec_nproc
+        exec_command = self.exec_command  # Flash does not need a different command for restarting
+        wrapper_args = self.wrapper_args
+        wrapper_nproc = self.wrapper_nproc
         if u_pert is None:
             cnop_do_inject = ".false."
             u_pert_fn = None
@@ -65,7 +65,8 @@ class Flash(Simulation):
 
         # Delete FLASH log and .dat files which will not be overwritten and will increase in size if not deleted
         delete_fn = ["flash.dat", self.basename + ".log"]
+        wrapper_finish_check_fn = ut_fn
 
-        ut = super().proceed_simulation(params, t1, exec_name, exec_args, exec_nproc,
+        ut = super().proceed_simulation(params, t1, exec_command, wrapper_args, wrapper_nproc, wrapper_finish_check_fn,
                                         u_pert, u_pert_fn, ut_fn, delete_fn, fork_id=fork_id)
         return ut

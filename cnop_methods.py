@@ -1,6 +1,5 @@
 import numpy as np
 from sim_controller import load_checkpoint, save_checkpoint
-from mpi4py import MPI
 
 
 class Spg2Defn:
@@ -8,8 +7,8 @@ class Spg2Defn:
         from utils import do_projection, compute_obj
         from grad_defn import grad_defn
 
-        self.comm = MPI.COMM_WORLD
-        self.rank = self.comm.Get_rank()
+        self.mpi_comm = process.mpi_comm
+        self.mpi_rank = self.mpi_comm.Get_rank()
 
         if process.restart:
             # load the method info from the restart checkpoint
@@ -37,12 +36,12 @@ class Spg2Defn:
             self.u_pert_best = self.u_pert.copy()
 
             # compute objective value
-            if self.rank == 0:
+            if self.mpi_rank == 0:
                 self.j_val = compute_obj(process, self.u_pert, t1)
-                self.comm.Bcast(self.j_val, root=0)
+                self.mpi_comm.Bcast(self.j_val, root=0)
             else:
                 self.j_val = np.empty(1, dtype=float)
-                self.comm.Bcast(self.j_val, root=0)
+                self.mpi_comm.Bcast(self.j_val, root=0)
             self.j_values[0] = self.j_val
             self.j_best = self.j_val
             self.ifcnt += 1
@@ -62,7 +61,7 @@ class Spg2Defn:
         # step-2:   Backtracking
         while self.cgnorm > self.eps and self.iter0 <= self.max_iter and self.ifcnt <= self.max_ifcnt:
             self.iter0 += 1
-            if self.rank == 0:
+            if self.mpi_rank == 0:
                 print("----------------------- iter", self.iter0, "-----------------------")
 
             # step-2.1: compute d
@@ -74,12 +73,12 @@ class Spg2Defn:
             # step-2.2 and step 2.3: compute alpha (lambda in paper) and u0_new,
             j_max = self.j_values.max()
             u_pert_new = self.u_pert + d
-            if self.rank == 0:
+            if self.mpi_rank == 0:
                 j_new = compute_obj(process, u_pert_new, t1)
-                self.comm.Bcast(j_new, root=0)
+                self.mpi_comm.Bcast(j_new, root=0)
             else:
                 j_new = np.empty(1, dtype=float)
-                self.comm.Bcast(j_new, root=0)
+                self.mpi_comm.Bcast(j_new, root=0)
             self.ifcnt = self.ifcnt + 1
             alpha = 1
 
@@ -92,12 +91,12 @@ class Spg2Defn:
                         atemp = alpha / 2.
                     alpha = atemp
                 u_pert_new = self.u_pert + alpha * d
-                if self.rank == 0:
+                if self.mpi_rank == 0:
                     j_new = compute_obj(process, u_pert_new, t1)
-                    self.comm.Bcast(j_new, root=0)
+                    self.mpi_comm.Bcast(j_new, root=0)
                 else:
                     j_new = np.empty(1, dtype=float)
-                    self.comm.Bcast(j_new, root=0)
+                    self.mpi_comm.Bcast(j_new, root=0)
                 self.ifcnt += 1
 
             self.j_val = j_new
@@ -125,7 +124,7 @@ class Spg2Defn:
                 self.lambda_ = np.min((self.max_float, np.max((self.min_float, sts / sty))))
 
             # save all needed information for restart
-            if self.rank == 0:
+            if self.mpi_rank == 0:
                 print("lambda = ", self.lambda_)
                 print("j_val = ", self.j_val)
                 print("sts = ", sts)
@@ -133,10 +132,10 @@ class Spg2Defn:
                 print("cgnorm = ", self.cgnorm)
                 save_checkpoint(process=process, method=self)
 
-            # set MPI barrier to make sure all processes are on the same page
-            self.comm.Barrier()
+            # # set MPI barrier to make sure all processes are on the same page
+            # self.mpi_comm.Barrier()
 
-        if self.rank == 0:
+        if self.mpi_rank == 0:
             if self.cgnorm <= self.eps:
                 print('convergence')
             else:

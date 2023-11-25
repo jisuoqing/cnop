@@ -73,5 +73,6 @@ class Flash(Simulation):
         wrapper_finish_check_fn = ut_fn
 
         ut = super().proceed_simulation(params, t1, exec_command, wrapper_args, wrapper_nproc, wrapper_finish_check_fn,
+                                        self.exec_finish_check_poll_interval,
                                         u_pert, u_pert_fn, ut_fn, delete_fn, fork_id=fork_id)
         return ut

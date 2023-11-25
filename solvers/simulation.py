@@ -231,7 +231,7 @@ class Simulation:
 
         # Now start the simulation
         self.run_simulation_with_python_wrapper(self.exec_command, self.wrapper_nproc, self.wrapper_args,
-                                                self.wrapper_finish_check_fn)
+                                                self.wrapper_finish_check_fn, self.exec_finish_check_poll_interval)
 
         if not pathlib.Path(self.base_dir + "/" + ut_fn).exists():
             raise ValueError("The evolving state file might be generated, but you might guess the file name wrong!")

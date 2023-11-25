@@ -1,9 +1,17 @@
 import numpy as np
 from sim_controller import find_latest_checkpoint, load_checkpoint
+from utils import usphere_sample
+from mpi4py import MPI
 
 
 class Burgers:
     def __init__(self, u_init, t0, **kwargs):
+        self.mpi = MPI
+        self.mpi_comm = self.mpi.COMM_WORLD
+        self.mpi_comm_self = self.mpi.COMM_SELF
+        self.mpi_rank = self.mpi_comm.Get_rank()
+        self.mpi_size = self.mpi_comm.Get_size()
+
         # check if there is a checkpoint file in the base_dir
         try:
             last_checkpoint_fn = find_latest_checkpoint(kwargs.get('base_dir', './'),
@@ -45,7 +53,8 @@ class Burgers:
             print("The basic state is evolved from the initial condition to time {}.".format(self.t0))
             return
 
-    def proceed(self, t1, u_pert=None):
+    def proceed(self, t1, u_pert=None, fork_id=None):
+        # fork_id is not used in this class since there is no need to create fork folders
         nt = int(t1 / self.delta_t + 1)
         if u_pert is None:
             if self.ut1_unperturbed is not None and self.t1 == t1:
@@ -61,3 +70,14 @@ class Burgers:
             # perturbation is added at time t0 and then evolved over another t1
             ut = self.solve(self.u0 + u_pert, nt, self.vis, self.delta_t, self.delta_x)
             return ut
+
+    def generate_u_pert(self, pert_mag=1.):
+        # generate a random perturbation
+        if self.mpi_rank == 0:
+            u_pert = np.zeros(self.u_init.shape)
+            u_pert[1:-1] = usphere_sample(len(self.u_init) - 2)
+            u_pert = self.mpi_comm.bcast(u_pert, root=0)
+        else:
+            u_pert = None
+            u_pert = self.mpi_comm.bcast(u_pert, root=0)
+        return u_pert * pert_mag

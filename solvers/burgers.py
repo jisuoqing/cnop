@@ -30,7 +30,8 @@ class Burgers:
             # if there is a checkpoint file, load process attributes from it
             load_checkpoint(self.restart_checkpoint_fn, "process", self)
             # now print that the class is initialized with detailed information
-            print("The class is initialized with the checkpoint file {}.".format(self.restart_checkpoint_fn))
+            if self.mpi_rank == 0:
+                print("The class is initialized with the checkpoint file {}.".format(self.restart_checkpoint_fn))
             return
         else:
             # for given initial condition u_init, evolve it to time t0 as the basic state u0
@@ -50,7 +51,8 @@ class Burgers:
             # now evolve the initial condition to t0, to obtain u0 which is the basic state
             self.u0 = self.solve(u_init, nt0, self.vis, self.delta_t, self.delta_x)
             # now print that the class is initialized with detailed information
-            print("The basic state is evolved from the initial condition to time {}.".format(self.t0))
+            if self.mpi_rank == 0:
+                print("The basic state is evolved from the initial condition to time {}.".format(self.t0))
             return
 
     def proceed(self, t1, u_pert=None, fork_id=None):

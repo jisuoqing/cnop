@@ -3,8 +3,10 @@ from solvers.simulation import Simulation
 
 class Flash(Simulation):
     def __init__(self, t0, base_dir, exec_command, wrapper_nproc,
-                 basename, pert_var, grow_var, yt_derived_fields=None,
+                 basename, pert_var, grow_var, exec_finish_check_poll_interval=1.,
+                 yt_derived_fields=None,
                  link_list=None, copy_list=None):
+        # TODO: add a warning of wrapper_nproc != iprocs * jprocs * kprocs
         init_params = {
             "restart": ".false.",
             "checkpointFileNumber": 0,
@@ -29,8 +31,11 @@ class Flash(Simulation):
 
         exec_args = ""
         wrapper_finish_check_fn = u0_fn
+        if exec_finish_check_poll_interval is None:
+            exec_finish_check_poll_interval = 1.
         super().__init__(None, base_dir,
-                         exec_command, exec_args, wrapper_nproc, wrapper_finish_check_fn,
+                         exec_command, exec_args, wrapper_nproc,
+                         wrapper_finish_check_fn, exec_finish_check_poll_interval,
                          init_params, "flash.par", u0_fn,
                          pert_var, grow_var, yt_derived_fields=yt_derived_fields,
                          link_list=link_list, copy_list=copy_list)

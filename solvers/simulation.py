@@ -141,7 +141,6 @@ class Simulation:
             if not wait_for_file(exec_finish_check_fn, timeout=10, poll_interval=.1):
                 raise RuntimeError(f"The simulation is not finished and {exec_finish_check_fn} is not generated!")
         os.chdir(current_dir)
-        new_comm.Disconnect()  # this will cause deadlock?
         return
 
     def generate_u_pert(self, pert_mag):

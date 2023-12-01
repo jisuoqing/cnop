@@ -40,7 +40,7 @@ def grad_defn(process, u_pert, t, epsilon=1e-08):
 
     g_local = np.zeros(shape)
     for index in my_indices:
-        g_local[index] = compute_g(mpi_rank, index, u_pert, epsilon, t, ut, j_val, process)
+        g_local[tuple(index)] = compute_g(mpi_rank, index, u_pert, epsilon, t, ut, j_val, process)
 
     # gather all the gradients
     g_global = np.zeros(shape)
@@ -51,7 +51,7 @@ def grad_defn(process, u_pert, t, epsilon=1e-08):
 
 def compute_g(fork_id, index, u_pert, epsilon, t, ut, j_val, process):
     u_pert_eps = u_pert.copy()
-    u_pert_eps[index] += epsilon
+    u_pert_eps[tuple(index)] += epsilon
     logging.debug("Computing gradient for index {} at fork {}".format(index, fork_id))
     ut_pert_eps = process.proceed(t, u_pert=u_pert_eps, fork_id=fork_id)
     j_pert = -((ut_pert_eps - ut) ** 2).sum()

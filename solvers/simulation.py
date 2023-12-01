@@ -143,11 +143,12 @@ class Simulation:
         os.chdir(current_dir)
         return
 
-    def generate_u_pert(self, pert_mag):
+    def generate_u_pert(self, pert_mag, seed=1234):
         # generate a perturbation file with magnitude pert_mag
         # This should be created on one processor and broadcast to all processors
         if self.mpi_rank == 0:
             ds = yt.load(self.base_dir + "/" + self.u0_fn)
+            np.random.seed(seed)
             u_pert = np.random.uniform(-pert_mag, pert_mag, ds.domain_dimensions)
             del ds
             self.mpi_comm.bcast(u_pert, root=0)

@@ -139,7 +139,8 @@ class Simulation:
         if exec_finish_check_fn is None:
             # make sure the final output file is generated, 0.1 second is enough for large file IO
             if not wait_for_file(exec_finish_check_fn, timeout=10, poll_interval=.1):
-                raise RuntimeError(f"The simulation is not finished and {exec_finish_check_fn} is not generated!")
+                raise RuntimeError(f"The simulation is not finished and {exec_finish_check_fn} is not generated!"
+                                   f"Please check the output {self.base_dir}/stdout.txt for more information.")
         os.chdir(current_dir)
         return
 

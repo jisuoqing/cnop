@@ -136,7 +136,7 @@ class Simulation:
         # first wait for the stdout file to appear and make sure the simulation is running
         if not wait_for_file("stdout.txt", timeout=10, poll_interval=exec_finish_check_poll_interval):
             raise RuntimeError("The simulation is not running!")
-        if exec_finish_check_fn is None:
+        if exec_finish_check_fn is not None:
             # make sure the final output file is generated, 0.1 second is enough for large file IO
             if not wait_for_file(exec_finish_check_fn, timeout=10, poll_interval=.1):
                 raise RuntimeError(f"The simulation is not finished and {exec_finish_check_fn} is not generated!"

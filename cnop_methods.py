@@ -58,11 +58,17 @@ class Spg2Defn:
             if self.cgnorm != 0:
                 self.lambda_ = 1 / self.cgnorm
 
+            # save all needed information for restart
+            if self.mpi_rank == 0:
+                print("----------------------- iter", self.iter0, "-----------------------")
+                print("lambda = ", self.lambda_)
+                print("j_val = ", self.j_val)
+                print("cgnorm = ", self.cgnorm)
+                save_checkpoint(process=process, method=self)
+
         # step-2:   Backtracking
         while self.cgnorm > self.eps and self.iter0 <= self.max_iter and self.ifcnt <= self.max_ifcnt:
             self.iter0 += 1
-            if self.mpi_rank == 0:
-                print("----------------------- iter", self.iter0, "-----------------------")
 
             # step-2.1: compute d
             d = self.u_pert - self.lambda_ * self.g
@@ -125,6 +131,7 @@ class Spg2Defn:
 
             # save all needed information for restart
             if self.mpi_rank == 0:
+                print("----------------------- iter", self.iter0, "-----------------------")
                 print("lambda = ", self.lambda_)
                 print("j_val = ", self.j_val)
                 print("sts = ", sts)

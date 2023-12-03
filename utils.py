@@ -40,18 +40,23 @@ def wait_for_file(file_path, timeout=60, poll_interval=1):
     """
     Wait for a file to appear
     :param file_path: path of the file
-    :param timeout: timeout in seconds
+    :param timeout: timeout if file_path does not exist
     :param poll_interval: poll interval in seconds
     :return: True if the file appears before timeout, False otherwise
     """
     start_time = time.time()
 
+    # first, check if the file already exists with the timeout
     while time.time() - start_time < timeout:
         if os.path.exists(file_path):
-            current_mtime = os.path.getmtime(file_path)
-            time.sleep(poll_interval)
-            if current_mtime == os.path.getmtime(file_path):
-                return True
+            # then, check if the file is modified with the for the polling interval
+            being_modified = True
+            while being_modified:
+                current_mtime = os.path.getmtime(file_path)
+                time.sleep(poll_interval)
+                if current_mtime == os.path.getmtime(file_path):
+                    being_modified = False
+            return True
         else:
             time.sleep(poll_interval)
 

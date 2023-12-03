@@ -25,7 +25,7 @@ if __name__ == "__main__":
         flash = Flash(t0, "../flash4/object", "./flash4", 2,
                       "cnop1d", "dens", "dens",
                       # shorter polling interval since the simulation is fast
-                      exec_finish_check_poll_interval=0.1
+                      wrapper_check_poll_interval=0.1
                       )
         u_pert = flash.generate_u_pert(pert_mag=0.1)
         t1 = 30.
@@ -38,7 +38,9 @@ if __name__ == "__main__":
 
         t0 = 0.0
         flash = Flash(t0, "../flash4/object", "./flash4", 6,
-                      "cloud_crushing", "dens", "cool_dens", yt_derived_fields=derived_fields,
+                      "cloud_crushing", "dens", "cool_dens",
+                      wrapper_check_poll_interval=10,
+                      yt_derived_fields=derived_fields,
                       link_list=["cool_func.dat"])
         u_pert = flash.generate_u_pert(pert_mag=1e-3)
         t1 = 50.

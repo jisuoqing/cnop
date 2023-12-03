@@ -3,7 +3,10 @@ from solvers.simulation import Simulation
 
 class Flash(Simulation):
     def __init__(self, t0, base_dir, exec_command, wrapper_nproc,
-                 basename, pert_var, grow_var, wrapper_check_poll_interval=1.,
+                 basename, pert_var, grow_var,
+                 wrapper_check_poll_interval=1.,
+                 wrapper_running_check_timeout=10.,
+                 wrapper_finish_check_timeout=10.,
                  yt_derived_fields=None,
                  link_list=None, copy_list=None):
         # TODO: add a warning of wrapper_nproc != iprocs * jprocs * kprocs
@@ -33,13 +36,11 @@ class Flash(Simulation):
         # use Flash log file as the indicator of running instead of stdout.txt (which is not updated in time)
         wrapper_running_check_fn = basename + ".log"
         wrapper_finish_check_fn = u0_fn
-        timeout = 10.
-        if wrapper_check_poll_interval is None:
-            wrapper_check_poll_interval = 1.
+
         super().__init__(None, base_dir,
                          exec_command, exec_args, wrapper_nproc,
-                         wrapper_running_check_fn, timeout,
-                         wrapper_finish_check_fn, timeout,
+                         wrapper_running_check_fn, wrapper_running_check_timeout,
+                         wrapper_finish_check_fn, wrapper_finish_check_timeout,
                          wrapper_check_poll_interval,
                          init_params, "flash.par", u0_fn,
                          pert_var, grow_var, yt_derived_fields=yt_derived_fields,

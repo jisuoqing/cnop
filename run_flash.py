@@ -40,6 +40,7 @@ if __name__ == "__main__":
         flash = Flash(t0, "../flash4/object", "./flash4", 6,
                       "cloud_crushing", "dens", "cool_dens",
                       wrapper_check_poll_interval=10,
+                      wrapper_finish_check_timeout=60*60*2,
                       yt_derived_fields=derived_fields,
                       link_list=["cool_func.dat"])
         u_pert = flash.generate_u_pert(pert_mag=1e-3)

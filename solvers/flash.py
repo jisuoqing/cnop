@@ -3,7 +3,7 @@ from solvers.simulation import Simulation
 
 class Flash(Simulation):
     def __init__(self, t0, base_dir, exec_command, wrapper_nproc,
-                 basename, pert_var, grow_var, exec_finish_check_poll_interval=1.,
+                 basename, pert_var, grow_var, wrapper_check_poll_interval=1.,
                  yt_derived_fields=None,
                  link_list=None, copy_list=None):
         # TODO: add a warning of wrapper_nproc != iprocs * jprocs * kprocs
@@ -30,21 +30,23 @@ class Flash(Simulation):
         copy_list.append("flash4")  # Flash executable
 
         exec_args = ""
+        # use Flash log file as the indicator of running instead of stdout.txt (which is not updated in time)
+        wrapper_running_check_fn = basename + ".log"
         wrapper_finish_check_fn = u0_fn
-        if exec_finish_check_poll_interval is None:
-            exec_finish_check_poll_interval = 1.
+        timeout = 10.
+        if wrapper_check_poll_interval is None:
+            wrapper_check_poll_interval = 1.
         super().__init__(None, base_dir,
                          exec_command, exec_args, wrapper_nproc,
-                         wrapper_finish_check_fn, exec_finish_check_poll_interval,
+                         wrapper_running_check_fn, timeout,
+                         wrapper_finish_check_fn, timeout,
+                         wrapper_check_poll_interval,
                          init_params, "flash.par", u0_fn,
                          pert_var, grow_var, yt_derived_fields=yt_derived_fields,
                          link_list=link_list, copy_list=copy_list)
         return
 
     def proceed(self, t1, u_pert=None, u_pert_fn="u_pert.h5", fork_id=None):
-        exec_command = self.exec_command  # Flash does not need a different command for restarting
-        wrapper_args = self.wrapper_args
-        wrapper_nproc = self.wrapper_nproc
         if u_pert is None:
             cnop_do_inject = ".false."
             u_pert_fn = None
@@ -72,7 +74,8 @@ class Flash(Simulation):
         delete_fn = ["flash.dat", self.basename + ".log"]
         wrapper_finish_check_fn = ut_fn
 
-        ut = super().proceed_simulation(params, t1, exec_command, wrapper_args, wrapper_nproc, wrapper_finish_check_fn,
-                                        self.exec_finish_check_poll_interval,
-                                        u_pert, u_pert_fn, ut_fn, delete_fn, fork_id=fork_id)
+        ut = super().proceed_simulation(params, t1,
+                                        wrapper_finish_check_fn=wrapper_finish_check_fn,
+                                        u_pert=u_pert, u_pert_fn=u_pert_fn, ut_fn=ut_fn, delete_fn=delete_fn,
+                                        fork_id=fork_id)
         return ut

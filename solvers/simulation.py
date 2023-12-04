@@ -276,7 +276,7 @@ class Simulation:
 
         # Change back to old base_dir and delete fork_id
         if fork_id is not None:
-            shutil.rmtree(self.base_dir)
+            shutil.rmtree(self.base_dir,  ignore_errors=True)
             self.base_dir = old_base_dir
         return ut
 

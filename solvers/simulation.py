@@ -152,6 +152,7 @@ class Simulation:
                     f"The simulation is not finished and {self.wrapper_finish_check_fn} is not generated!"
                     f"Please check the output {self.base_dir}/stdout.txt for more information.")
         os.chdir(original_dir)
+        new_comm.Free()
         return
 
     def generate_u_pert(self, pert_mag, seed=1234):

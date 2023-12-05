@@ -1,5 +1,5 @@
 from sim_controller import update_parameter, find_latest_checkpoint, load_checkpoint
-from utils import generate_python_wrapper, wait_for_file, wait_until_deleted
+from utils import generate_python_wrapper, wait_for_file
 import subprocess
 import os
 import warnings

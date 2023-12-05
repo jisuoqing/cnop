@@ -102,10 +102,8 @@ def wait_until_deleted(path, timeout=60., poll_interval=1.):
             shutil.rmtree(path)
             delete_success = True
         except FileNotFoundError:
-            print(f"Waiting for {path} to be deleted...")
             delete_success = True
         except OSError:
-            print(f"Waiting for {path} to be deleted...")
             delete_success = False
             time.sleep(poll_interval)
     return delete_success

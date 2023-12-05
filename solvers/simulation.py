@@ -149,8 +149,9 @@ class Simulation:
             if not wait_for_file(self.wrapper_finish_check_fn,
                                  timeout=self.wrapper_finish_check_timeout,
                                  poll_interval=self.wrapper_check_poll_interval):
-                raise RuntimeError(f"The simulation is not finished and {self.wrapper_finish_check_fn} is not generated!"
-                                   f"Please check the output {self.base_dir}/stdout.txt for more information.")
+                raise RuntimeError(
+                    f"The simulation is not finished and {self.wrapper_finish_check_fn} is not generated!"
+                    f"Please check the output {self.base_dir}/stdout.txt for more information.")
         os.chdir(original_dir)
         return
 
@@ -274,11 +275,9 @@ class Simulation:
         # Return the evolving state ut
         ut = self.yt_read_solution(self.base_dir, ut_fn, self.grow_var, self.yt_derived_fields)
 
-        # Delete fork_dir
+        # Delete fork_dir, which is now self.base_dir
         if fork_id is not None:
-            status = wait_until_deleted(self.base_dir)
-            if status is False:
-                raise RuntimeError(f"The fork directory {self.base_dir} cannot not deleted!")
+            self.remove_fork_dir(self.base_dir)
 
         # Change back to the original base_dir
         self.base_dir = old_base_dir
@@ -307,9 +306,9 @@ class Simulation:
     def make_fork_dir(self, fork_dir: str):
         # copy all the files in the base_dir to the fork_id, but excluding folders
         if pathlib.Path(fork_dir).exists():
-            status = wait_until_deleted(self.base_dir)
+            status = wait_until_deleted(fork_dir)
             if status is False:
-                raise RuntimeError(f"The fork directory {self.base_dir} cannot not deleted!")
+                raise RuntimeError(f"The fork directory {fork_dir} cannot not deleted!")
 
         os.mkdir(fork_dir)
 
@@ -319,9 +318,10 @@ class Simulation:
         os.system("cp -r " + self.base_dir + "/" + (" " + self.base_dir + "/").join(self.copy_list) + " " + fork_dir)
         return
 
-    # def remove_fork_dirs(self):
-    #     # remove all fork directories
-    #     for fn in os.listdir(self.base_dir):
-    #         if fn.startswith("fork_"):
-    #             shutil.rmtree(self.base_dir + "/" + fn, ignore_errors=True)
-    #     return
+    @staticmethod
+    def remove_fork_dir(fork_dir: str):
+        # remove the fork_dir
+        status = wait_until_deleted(fork_dir)
+        if status is False:
+            raise RuntimeError(f"The fork directory {fork_dir} cannot not deleted!")
+        return

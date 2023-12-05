@@ -304,7 +304,12 @@ class Simulation:
         # copy all the files in the base_dir to the fork_id, but excluding folders
         if pathlib.Path(fork_dir).exists():
             shutil.rmtree(fork_dir, ignore_errors=True)
-        os.mkdir(fork_dir)
+        try:
+            os.mkdir(fork_dir)
+        except FileExistsError:
+            # clean up all files in the folder
+            for fn in os.listdir(fork_dir):
+                os.remove(fork_dir + "/" + fn)
         # subprocess is needed to enter the fork_dir and create symbolic links
         for fn in self.link_list:
             subprocess.run(["ln", "-s", "../" + fn, "."], cwd=fork_dir)

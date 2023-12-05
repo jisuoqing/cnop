@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import time
+import shutil
 
 
 def do_projection(u, delta=8e-4):
@@ -84,3 +85,27 @@ with open("stdout.txt", "w") as stdout, open("stderr.txt", "w") as stderr:
         file.write(code_to_write)
 
     return
+
+
+def wait_until_deleted(path, timeout=60., poll_interval=1.):
+    """
+    Remove a directory tree with multiple trials
+    :param path: path of the directory tree
+    :param timeout: timeout in seconds
+    :param poll_interval: poll interval in seconds
+    :return: True if the directory tree is removed before timeout, False otherwise
+    """
+    delete_success = False
+    start_time = time.time()
+    while not delete_success and time.time() - start_time < timeout:
+        try:
+            shutil.rmtree(path)
+            delete_success = True
+        except FileNotFoundError:
+            print(f"Waiting for {path} to be deleted...")
+            delete_success = True
+        except OSError:
+            print(f"Waiting for {path} to be deleted...")
+            delete_success = False
+            time.sleep(poll_interval)
+    return delete_success

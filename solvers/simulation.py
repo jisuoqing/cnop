@@ -1,5 +1,5 @@
 from sim_controller import update_parameter, find_latest_checkpoint, load_checkpoint
-from utils import generate_python_wrapper, wait_for_file
+from utils import generate_python_wrapper, wait_for_file, wait_until_deleted
 import subprocess
 import os
 import warnings
@@ -274,10 +274,14 @@ class Simulation:
         # Return the evolving state ut
         ut = self.yt_read_solution(self.base_dir, ut_fn, self.grow_var, self.yt_derived_fields)
 
-        # Change back to old base_dir and delete fork_id
+        # Delete fork_dir
         if fork_id is not None:
-            shutil.rmtree(self.base_dir, ignore_errors=True)
-            self.base_dir = old_base_dir
+            status = wait_until_deleted(self.base_dir)
+            if status is False:
+                raise RuntimeError(f"The fork directory {self.base_dir} cannot not deleted!")
+
+        # Change back to the original base_dir
+        self.base_dir = old_base_dir
         return ut
 
     @staticmethod
@@ -303,13 +307,12 @@ class Simulation:
     def make_fork_dir(self, fork_dir: str):
         # copy all the files in the base_dir to the fork_id, but excluding folders
         if pathlib.Path(fork_dir).exists():
-            shutil.rmtree(fork_dir, ignore_errors=True)
-        try:
-            os.mkdir(fork_dir)
-        except FileExistsError:
-            # clean up all files in the folder
-            for fn in os.listdir(fork_dir):
-                os.remove(fork_dir + "/" + fn)
+            status = wait_until_deleted(self.base_dir)
+            if status is False:
+                raise RuntimeError(f"The fork directory {self.base_dir} cannot not deleted!")
+
+        os.mkdir(fork_dir)
+
         # subprocess is needed to enter the fork_dir and create symbolic links
         for fn in self.link_list:
             subprocess.run(["ln", "-s", "../" + fn, "."], cwd=fork_dir)

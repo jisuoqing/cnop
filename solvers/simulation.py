@@ -7,7 +7,6 @@ import yt
 import numpy as np
 import h5py
 import pathlib
-import shutil
 from mpi4py import MPI
 import logging
 
@@ -275,9 +274,9 @@ class Simulation:
         # Return the evolving state ut
         ut = self.yt_read_solution(self.base_dir, ut_fn, self.grow_var, self.yt_derived_fields)
 
-        # Delete fork_dir, which is now self.base_dir
+        # Clean up all the files in the fork_dir, which is now self.base_dir
         if fork_id is not None:
-            self.remove_fork_dir(self.base_dir)
+            self.cleanup_fork_dir(self.base_dir)
 
         # Change back to the original base_dir
         self.base_dir = old_base_dir
@@ -306,11 +305,10 @@ class Simulation:
     def make_fork_dir(self, fork_dir: str):
         # copy all the files in the base_dir to the fork_id, but excluding folders
         if pathlib.Path(fork_dir).exists():
-            status = wait_until_deleted(fork_dir)
-            if status is False:
-                raise RuntimeError(f"The fork directory {fork_dir} cannot not deleted!")
-
-        os.mkdir(fork_dir)
+            # Clean up all the files in the fork_dir
+            self.cleanup_fork_dir(fork_dir)
+        else:
+            os.mkdir(fork_dir)
 
         # subprocess is needed to enter the fork_dir and create symbolic links
         for fn in self.link_list:
@@ -319,9 +317,13 @@ class Simulation:
         return
 
     @staticmethod
-    def remove_fork_dir(fork_dir: str):
-        # remove the fork_dir
-        status = wait_until_deleted(fork_dir)
-        if status is False:
-            raise RuntimeError(f"The fork directory {fork_dir} cannot not deleted!")
-        return
+    def cleanup_fork_dir(fork_dir: str):
+        if not pathlib.Path(fork_dir).exists():
+            return True
+        try:
+            os.system(f"rm -rf {fork_dir}/*")
+        except OSError:
+            warnings.warn(f"The fork directory {fork_dir} cannot not deleted!")
+            return False
+        else:
+            return True

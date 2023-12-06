@@ -42,10 +42,14 @@ def grad_defn(process, u_pert, t, epsilon=1e-08):
     for i, index in enumerate(my_indices):
         logging.debug("Rank {}: Computing gradient [{}/{}] for index {}".format(mpi_rank, i+1, len(my_indices), index))
         g_local[tuple(index)] = compute_g(mpi_rank, index, u_pert, epsilon, t, ut, j_val, process)
+        logging.debug("Rank {}: Gradient [{}/{}] for index {} is {}".format(mpi_rank, i+1, len(my_indices), index,
+                                                                            g_local[tuple(index)]))
 
     # gather all the gradients
     g_global = np.zeros(shape)
+    logging.debug("Rank {}: Gathering gradients...".format(mpi_rank))
     mpi_comm.Allreduce(g_local, g_global, op=process.mpi.SUM)
+    logging.debug("Rank {}: Gradients gathered".format(mpi_rank))
 
     return g_global
 

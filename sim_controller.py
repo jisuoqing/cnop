@@ -46,7 +46,11 @@ def save_checkpoint(process, method):
             if k.startswith("restart") or k.startswith("mpi") or k == "yt_derived_fields":
                 continue
             try:
-                process_group.create_dataset(k, data=v)
+                if v is None:
+                    # If the value is None, use a placeholder string
+                    process_group.create_dataset(k, data="None")
+                else:
+                    process_group.create_dataset(k, data=v)
             except TypeError:
                 warnings.warn("The process attribute {} cannot be saved!".format(k))
         method_group = f.create_group('method')
@@ -116,7 +120,10 @@ def load_h5_data_from_group(group):
             if group[key].dtype.kind == 'O':
                 # If it's an object type, check if it's a single string or a list
                 if group[key].shape == ():
-                    data_dict[key] = group[key][()].decode('utf-8')
+                    if group[key][()].decode('utf-8') == "None":
+                        data_dict[key] = None
+                    else:
+                        data_dict[key] = group[key][()].decode('utf-8')
                 else:
                     # If it's a list of bytes, decode each item
                     data_dict[key] = [item.decode('utf-8') for item in group[key][()]]

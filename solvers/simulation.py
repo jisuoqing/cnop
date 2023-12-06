@@ -230,8 +230,6 @@ class Simulation:
                 if np.isclose(t1, t1_infile, atol=np.min((t1, t1_infile)) * 1e-2):  # allow 1% tolerance due to timestep
                     ut = self.yt_read_solution(self.base_dir, self.ut1_unperturbed_fn, self.grow_var,
                                                self.yt_derived_fields)
-                    logging.debug("The unperturbed solution at t1 is already computed, and "
-                                  "is read from file {}.".format(self.ut1_unperturbed_fn))
                     return ut
                 else:
                     warnings.warn("The unperturbed solution at t1 = %f is already computed, but the time does not "
@@ -252,7 +250,6 @@ class Simulation:
 
         if not pathlib.Path(self.base_dir + "/" + ut_fn).exists():
             raise ValueError("The evolving state file might be generated, but you might guess the file name wrong!")
-        logging.debug("The ut state is evolved from the basic state u0 and saved as {}.".format(ut_fn))
 
         # Delete the perturbation file
         if u_pert_fn is not None:

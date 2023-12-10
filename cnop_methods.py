@@ -3,7 +3,7 @@ from sim_controller import load_checkpoint, save_checkpoint
 
 
 class Spg2Defn:
-    def __init__(self, process, u_pert, t1):
+    def __init__(self, process, u_pert, t1, grad_epsilon=1e-8):
         from utils import do_projection, compute_obj
         from grad_defn import grad_defn
 
@@ -14,6 +14,8 @@ class Spg2Defn:
             # load the method info from the restart checkpoint
             load_checkpoint(process.restart_checkpoint_fn, "method", self)
         else:
+
+            self.grad_epsilon = grad_epsilon
 
             self.iter0 = 0
 
@@ -47,7 +49,7 @@ class Spg2Defn:
             self.ifcnt += 1
 
             # compute gradient (adjoint method)
-            self.g = grad_defn(process, self.u_pert, t1, epsilon=1e-08)
+            self.g = grad_defn(process, self.u_pert, t1, self.grad_epsilon)
             self.igcnt += 1
 
             # step-1: discriminate whether the current point is stationary
@@ -110,7 +112,7 @@ class Spg2Defn:
             if j_new < self.j_best:
                 self.j_best = j_new
                 self.u_pert_best = u_pert_new.copy()
-            g_new = grad_defn(process, u_pert_new, t1)
+            g_new = grad_defn(process, u_pert_new, t1, self.grad_epsilon)
             self.igcnt += 1
 
             # step-3: compute lambda (alpha in paper)

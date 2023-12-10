@@ -2,7 +2,7 @@ import numpy as np
 import logging
 
 
-def grad_defn(process, u_pert, t, epsilon=1e-08):
+def grad_defn(process, u_pert, t, epsilon):
 
     mpi_comm = process.mpi_comm
     mpi_size = process.mpi_size

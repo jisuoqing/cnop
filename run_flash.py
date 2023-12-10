@@ -22,7 +22,7 @@ if __name__ == "__main__":
     if problem == "cnop1d":
 
         t0 = 10.
-        flash = Flash(t0, "../flash4/object", "./flash4", 2,
+        flash = Flash(t0, "../flash4/new", "./flash4", 2,
                       "cnop1d", "dens", "dens",
                       # shorter polling interval since the simulation is fast
                       wrapper_check_poll_interval=0.1
@@ -37,10 +37,10 @@ if __name__ == "__main__":
     elif problem == "cloud_crushing":
 
         t0 = 0.0
-        flash = Flash(t0, "../flash4/object", "./flash4", 6,
+        flash = Flash(t0, "../flash4/object", "./flash4", 1,
                       "cloud_crushing", "dens", "cool_dens",
                       wrapper_check_poll_interval=10,
-                      wrapper_finish_check_timeout=60*60*2,
+                      wrapper_finish_check_timeout=np.inf,
                       yt_derived_fields=derived_fields,
                       link_list=["cool_func.dat"])
         u_pert = flash.generate_u_pert(pert_mag=1e-3)
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         # first, feeding in all-space perturbations to make sure the sim likes it
         # flash.proceed(t1 * 0.1, u_pert=u_pert, fork_id=100)
 
-        spg2 = Spg2Defn(flash, u_pert, t1)
+        spg2 = Spg2Defn(flash, u_pert, t1, grad_epsilon=1.e-4)
         # save the result
         if flash.mpi_rank == 0:
             np.savez("flash_u_pert_best.npz", u_pert_best=spg2.u_pert_best, j_best=spg2.j_best)

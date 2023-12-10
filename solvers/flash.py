@@ -34,7 +34,7 @@ class Flash(Simulation):
 
         exec_args = ""
         # use Flash log file as the indicator of running instead of stdout.txt (which is not updated in time)
-        wrapper_running_check_fn = basename + ".log"
+        wrapper_running_check_fn = None  # basename + ".log"
         wrapper_finish_check_fn = u0_fn
 
         super().__init__(None, base_dir,

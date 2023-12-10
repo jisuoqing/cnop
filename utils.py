@@ -1,7 +1,6 @@
 import numpy as np
 import os
 import time
-import shutil
 
 
 def do_projection(u, delta=8e-4):

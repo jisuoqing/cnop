@@ -3,6 +3,7 @@ import numpy as np
 import yt
 import os
 import warnings
+import h5py
 
 
 def load_cnop(filename, solution_file=None, bbox=None):
@@ -36,7 +37,7 @@ def load_group_data(file, group, dims, data_dict, parameter_dict):
 
         try:
             if np.array_equal(file[group][field][...].shape, dims):
-                field_data = np.array(file[group][field])  # np.transpose(np.array(f["method"][field]))[..., 0]
+                field_data = np.array(file[group][field])
                 data_dict[("gas", field)] = (field_data[...], field_unit)
                 print("%s field loaded with unit of %s" % (field, field_unit))
             else:
@@ -44,4 +45,11 @@ def load_group_data(file, group, dims, data_dict, parameter_dict):
                 raise TypeError
         except TypeError:
             parameter_dict[field] = file[group][field]
+    return
+
+
+def extract_u_pert(filename, u_pert_fn="u_pert.h5", u_pert_name="u_pert_best"):
+    f_check = load_h5_data(filename)
+    with h5py.File(u_pert_fn, 'w') as f:
+        f.create_dataset('u_pert', data=f_check["method"][u_pert_name])
     return

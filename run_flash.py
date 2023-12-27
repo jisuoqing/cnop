@@ -22,7 +22,7 @@ if __name__ == "__main__":
     if problem == "cnop1d":
 
         t0 = 10.
-        flash = Flash(t0, "../flash4/new", "./flash4", 2,
+        flash = Flash(t0, "../flash4/object", "./flash4", 2,
                       "cnop1d", "dens", "dens",
                       # shorter polling interval since the simulation is fast
                       wrapper_check_poll_interval=0.1

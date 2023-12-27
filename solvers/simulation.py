@@ -161,6 +161,7 @@ class Simulation:
             dims = ds.domain_dimensions
             values = ds.covering_grid(level=0, left_edge=ds.domain_left_edge, dims=dims)[variable].v
             del ds
+            self.mpi_comm.bcast(values, root=0)
         else:
             values = None
             values = self.mpi_comm.bcast(values, root=0)

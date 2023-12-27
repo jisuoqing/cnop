@@ -50,7 +50,7 @@ if __name__ == "__main__":
         # first, feeding in all-space perturbations to make sure the sim likes it
         # flash.proceed(t1 * 0.1, u_pert=u_pert, fork_id=100)
 
-        spg2 = Spg2Defn(flash, u_pert, t1, pert_delta=dens.max() * 0.1, pert_mask=pert_mask, grad_epsilon=1.e-4)
+        spg2 = Spg2Defn(flash, u_pert, t1, pert_delta=dens.max() * 0.1, grad_epsilon=1.e-4)  # pert_mask=pert_mask
         # save the result
         if flash.mpi_rank == 0:
             np.savez("flash_u_pert_best.npz", u_pert_best=spg2.u_pert_best, j_best=spg2.j_best)

@@ -7,6 +7,12 @@ def do_projection(u, delta, mask):
     # sum u**2 * dx = sum u**2 * L * (dx / L) = sum u**2 / n * L, let L = 1
     if mask is None:
         mask = np.ones_like(u, dtype=bool)
+    else:
+        if not mask.all():
+            # if not all true
+            raise NotImplementedError("Not sure masked projection works correctly in cnop.")
+    if not np.array_equal(u.shape, mask.shape):
+        raise ValueError("u and mask must have the same shape.")
     mean = (u[mask] ** 2.).mean()
     if np.sqrt(mean) <= delta:
         proj_u = u

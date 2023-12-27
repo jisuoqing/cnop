@@ -59,7 +59,11 @@ def save_checkpoint(process, method):
             if k.startswith("mpi"):
                 continue
             try:
-                method_group.create_dataset(k, data=v)
+                # If the value is None, use a placeholder string
+                if v is None:
+                    method_group.create_dataset(k, data="None")
+                else:
+                    method_group.create_dataset(k, data=v)
             except TypeError:
                 warnings.warn("The method attribute {} cannot be saved!".format(k))
     return

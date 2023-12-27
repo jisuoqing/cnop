@@ -3,12 +3,16 @@ import os
 import time
 
 
-def do_projection(u, delta=8e-4):
-    sum0 = (u ** 2.).sum()
-    if np.sqrt(sum0) <= delta:
+def do_projection(u, delta, mask):
+    # sum u**2 * dx = sum u**2 * L * (dx / L) = sum u**2 / n * L, let L = 1
+    if mask is None:
+        mask = np.ones_like(u, dtype=bool)
+    mean = (u[mask] ** 2.).mean()
+    if np.sqrt(mean) <= delta:
         proj_u = u
     else:
-        proj_u = delta / np.sqrt(sum0) * u
+        proj_u = u
+        proj_u[mask] = delta / np.sqrt(mean) * u[mask]
     return proj_u
 
 

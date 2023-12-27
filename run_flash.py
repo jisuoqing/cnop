@@ -27,9 +27,9 @@ if __name__ == "__main__":
                       # shorter polling interval since the simulation is fast
                       wrapper_check_poll_interval=0.1
                       )
-        u_pert = flash.generate_u_pert(pert_mag=0.1)
+        u_pert = flash.generate_u_pert(pert_delta=0.1)
         t1 = 30.
-        spg2 = Spg2Defn(flash, u_pert, t1)
+        spg2 = Spg2Defn(flash, u_pert, t1, 8e-6)
         # save the result
         if flash.mpi_rank == 0:
             np.savez("flash_u_pert_best.npz", u_pert_best=spg2.u_pert_best, j_best=spg2.j_best)
@@ -43,12 +43,14 @@ if __name__ == "__main__":
                       wrapper_finish_check_timeout=np.inf,
                       yt_derived_fields=derived_fields,
                       link_list=["cool_func.dat"])
-        u_pert = flash.generate_u_pert(pert_mag=1e-3)
+        dens = flash.get_covering_grid("density")
+        pert_mask = (dens > dens.max() * 0.1)
+        u_pert = flash.generate_u_pert(pert_delta=dens.max() * 0.1, pert_mask=pert_mask)
         t1 = 50.
         # first, feeding in all-space perturbations to make sure the sim likes it
         # flash.proceed(t1 * 0.1, u_pert=u_pert, fork_id=100)
 
-        spg2 = Spg2Defn(flash, u_pert, t1, grad_epsilon=1.e-4)
+        spg2 = Spg2Defn(flash, u_pert, t1, pert_delta=dens.max() * 0.1, pert_mask=pert_mask, grad_epsilon=1.e-4)
         # save the result
         if flash.mpi_rank == 0:
             np.savez("flash_u_pert_best.npz", u_pert_best=spg2.u_pert_best, j_best=spg2.j_best)

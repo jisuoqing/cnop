@@ -3,7 +3,15 @@ from sim_controller import load_checkpoint, save_checkpoint
 
 
 class Spg2Defn:
-    def __init__(self, process, u_pert, t1, grad_epsilon=1e-8):
+    def __init__(self, process, u_pert, t1, pert_delta, pert_mask=None, grad_epsilon=1e-8):
+        """
+        :param process: the process object
+        :param u_pert: the initial perturbation
+        :param t1: the final time
+        :param pert_delta: the perturbation bound
+        :param pert_mask: the pert_mask for the perturbation
+        :param grad_epsilon: for computing gradient
+        """
         from utils import do_projection, compute_obj
         from grad_defn import grad_defn
 
@@ -15,7 +23,9 @@ class Spg2Defn:
             load_checkpoint(process.restart_checkpoint_fn, "method", self)
         else:
 
+            self.pert_delta = pert_delta
             self.grad_epsilon = grad_epsilon
+            self.pert_mask = pert_mask
 
             self.iter0 = 0
 
@@ -34,7 +44,7 @@ class Spg2Defn:
             # storage M = 10 recent numbers
             self.j_num = 10
             self.j_values = -np.inf * np.ones(self.j_num)
-            self.u_pert = do_projection(u_pert)
+            self.u_pert = do_projection(u_pert, self.pert_delta, self.pert_mask)
             self.u_pert_best = self.u_pert.copy()
 
             # compute objective value
@@ -54,7 +64,7 @@ class Spg2Defn:
 
             # step-1: discriminate whether the current point is stationary
             cg = self.u_pert - self.g
-            cg = do_projection(cg)
+            cg = do_projection(cg, self.pert_delta, self.pert_mask)
             self.cgnorm = (np.abs(cg - self.u_pert)).max()
 
             if self.cgnorm != 0:
@@ -74,7 +84,7 @@ class Spg2Defn:
 
             # step-2.1: compute d
             d = self.u_pert - self.lambda_ * self.g
-            d = do_projection(d)
+            d = do_projection(d, self.pert_delta, self.pert_mask)
             d = d - self.u_pert
             gtd = (self.g * d).sum()
 
@@ -123,7 +133,7 @@ class Spg2Defn:
             self.u_pert = u_pert_new.copy()
             self.g = g_new.copy()
             cg = self.u_pert - self.g
-            cg = do_projection(cg)
+            cg = do_projection(cg, self.pert_delta, self.pert_mask)
             self.cgnorm = (np.abs(cg - self.u_pert)).max()
 
             if sty <= 0:

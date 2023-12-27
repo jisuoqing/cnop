@@ -20,7 +20,7 @@ t0 = nt0 * (t1 / nt)
 
 process = Burgers(u_init, t0, vis=vis, delta_t=delta_t, delta_x=delta_x)
 u_pert = process.generate_u_pert()
-spg2 = Spg2Defn(process, u_pert, t1)
+spg2 = Spg2Defn(process, u_pert, t1, 8e-6)
 
 if process.mpi_rank == 0:
     plt.subplot(211)

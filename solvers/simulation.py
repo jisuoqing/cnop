@@ -155,13 +155,31 @@ class Simulation:
         new_comm.Free()
         return
 
-    def generate_u_pert(self, pert_mag, seed=1234):
-        # generate a perturbation file with magnitude pert_mag
+    def get_covering_grid(self, variable):
+        if self.mpi_rank == 0:
+            ds = yt.load(self.base_dir + "/" + self.u0_fn)
+            dims = ds.domain_dimensions
+            values = ds.covering_grid(level=0, left_edge=ds.domain_left_edge, dims=dims)[variable].v
+            del ds
+        else:
+            values = None
+            values = self.mpi_comm.bcast(values, root=0)
+        return values
+
+    def generate_u_pert(self, pert_delta, pert_mask=None, seed=19900227):
+        # generate a perturbation file with magnitude pert_delta
         # This should be created on one processor and broadcast to all processors
         if self.mpi_rank == 0:
             ds = yt.load(self.base_dir + "/" + self.u0_fn)
+            if pert_mask is not None:
+                # if shape does not match
+                if not np.array_equal(pert_mask.shape, ds.domain_dimensions):
+                    raise ValueError("The pert_mask shape does not match the domain dimensions!")
+            else:
+                pert_mask = np.ones(ds.domain_dimensions, dtype=bool)
             np.random.seed(seed)
-            u_pert = np.random.uniform(-pert_mag, pert_mag, ds.domain_dimensions)
+            u_pert = np.zeros(ds.domain_dimensions)
+            u_pert[pert_mask] = np.random.uniform(-pert_delta, pert_delta, u_pert[pert_mask].shape)
             del ds
             self.mpi_comm.bcast(u_pert, root=0)
         else:

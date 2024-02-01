@@ -47,6 +47,9 @@ class Spg2Defn:
             self.u_pert = do_projection(u_pert, self.pert_delta, self.pert_mask)
             self.u_pert_best = self.u_pert.copy()
 
+            if self.mpi_rank == 0:
+                print("----------------------- iter", self.iter0, "-----------------------")
+
             # compute objective value
             if self.mpi_rank == 0:
                 self.j_val = compute_obj(process, self.u_pert, t1)
@@ -72,7 +75,6 @@ class Spg2Defn:
 
             # save all needed information for restart
             if self.mpi_rank == 0:
-                print("----------------------- iter", self.iter0, "-----------------------")
                 print("lambda = ", self.lambda_)
                 print("j_val = ", self.j_val)
                 print("cgnorm = ", self.cgnorm)
@@ -80,6 +82,10 @@ class Spg2Defn:
 
         # step-2:   Backtracking
         while self.cgnorm > self.eps and self.iter0 <= self.max_iter and self.ifcnt <= self.max_ifcnt:
+
+            if self.mpi_rank == 0:
+                print("----------------------- iter", self.iter0, "-----------------------")
+
             self.iter0 += 1
 
             # step-2.1: compute d
@@ -143,7 +149,6 @@ class Spg2Defn:
 
             # save all needed information for restart
             if self.mpi_rank == 0:
-                print("----------------------- iter", self.iter0, "-----------------------")
                 print("lambda = ", self.lambda_)
                 print("j_val = ", self.j_val)
                 print("sts = ", sts)

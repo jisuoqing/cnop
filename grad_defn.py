@@ -1,9 +1,9 @@
 import numpy as np
 import logging
+import time
 
 
 def grad_defn(process, u_pert, t, epsilon):
-
     mpi_comm = process.mpi_comm
     mpi_size = process.mpi_size
     mpi_rank = process.mpi_rank
@@ -39,12 +39,27 @@ def grad_defn(process, u_pert, t, epsilon):
     my_indices = indices_per_process[mpi_rank]
 
     g_local = np.zeros(shape)
+    time_elapsed = np.empty(len(my_indices), dtype=float)
     for i, index in enumerate(my_indices):
-        logging.debug("Rank {}: Computing gradient [{}/{}] for index {}".format(mpi_rank, i+1, len(my_indices), index))
+        logging.debug(
+            "Rank {}: Computing gradient [{}/{}] for index {}".format(mpi_rank, i + 1, len(my_indices), index))
+        time_start = time.time()
         g_local[tuple(index)] = compute_g(mpi_rank, index, u_pert, epsilon, t, ut, j_val, process)
-        logging.debug("Rank {}: Gradient [{}/{}] for index {} is {}".format(mpi_rank, i+1, len(my_indices), index,
+        time_end = time.time()
+        logging.debug("Rank {}: Gradient [{}/{}] for index {} is {}".format(mpi_rank, i + 1, len(my_indices), index,
                                                                             g_local[tuple(index)]))
+        time_elapsed[i] = time_end - time_start
 
+    # get the maximum and minimum of time_elapsed
+    mpi_comm.Barrier()
+    time_min = np.zeros(2, dtype=float)
+    time_max = np.zeros(2, dtype=float)
+    mpi_comm.Reduce(np.array([time_elapsed.min(), time_elapsed.sum()]), time_min, op=process.mpi.MIN)
+    mpi_comm.Reduce(np.array([time_elapsed.max(), time_elapsed.sum()]), time_max, op=process.mpi.MAX)
+    if mpi_rank == 0:
+        print("Gradient computation time: \n"
+              "Per run:  min = {}, max = {}, \n"
+              "Per core: min = {}, max = {}".format(time_min[0], time_max[0], time_min[1], time_max[1]))
     # gather all the gradients
     g_global = np.zeros(shape)
     logging.debug("Rank {}: Gathering gradients...".format(mpi_rank))

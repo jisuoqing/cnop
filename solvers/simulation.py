@@ -132,26 +132,26 @@ class Simulation:
     def run_simulation_with_python_wrapper(self):
         generate_python_wrapper(self.exec_command, wrapper_path=self.base_dir)
         # Now start the simulation
-        original_dir = os.getcwd()
-        os.chdir(self.base_dir)
+        # spawn might not honor os.chdir, so we pass in mpi.info to change the working directory
+        info = self.mpi.Info.Create()
+        info.Set("wdir", self.base_dir)
         new_comm = self.mpi_comm_self.Spawn(command='python3', args=["wrapper.py"] + self.wrapper_args.split(),
-                                            maxprocs=self.wrapper_nproc)
+                                            maxprocs=self.wrapper_nproc, info=info)
         if self.wrapper_running_check_fn is None and self.wrapper_finish_check_fn is None:
             raise ValueError("At least one of wrapper_running_check_fn and wrapper_finish_check_fn must be specified!")
         if self.wrapper_running_check_fn is not None:
-            if not wait_for_file(self.wrapper_running_check_fn,
+            if not wait_for_file(f"{self.base_dir}/{self.wrapper_running_check_fn}",
                                  timeout=self.wrapper_running_check_timeout,
                                  poll_interval=self.wrapper_check_poll_interval):
                 raise RuntimeError("The simulation is not running since "
                                    f"{self.base_dir}/{self.wrapper_running_check_fn} is not generated!")
         if self.wrapper_finish_check_fn is not None:
-            if not wait_for_file(self.wrapper_finish_check_fn,
+            if not wait_for_file(f"{self.base_dir}/{self.wrapper_finish_check_fn}",
                                  timeout=self.wrapper_finish_check_timeout,
                                  poll_interval=self.wrapper_check_poll_interval):
                 raise RuntimeError(
                     f"The simulation is not finished and {self.wrapper_finish_check_fn} is not generated!"
                     f"Please check the output {self.base_dir}/stdout.txt for more information.")
-        os.chdir(original_dir)
         new_comm.Free()
         return
 

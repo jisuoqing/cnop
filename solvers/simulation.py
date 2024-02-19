@@ -135,8 +135,8 @@ class Simulation:
         # spawn might not honor os.chdir, so we pass in mpi.info to change the working directory
         info = self.mpi.Info.Create()
         info.Set("wdir", self.base_dir)
-        new_comm = self.mpi_comm_self.Spawn(command='bash', args=["wrapper.sh"] + self.wrapper_args.split(),
-                                            maxprocs=self.wrapper_nproc, info=info)
+        child_comm = self.mpi_comm_self.Spawn(command='bash', args=["wrapper.sh"] + self.wrapper_args.split(),
+                                              maxprocs=self.wrapper_nproc, info=info)
         if self.wrapper_running_check_fn is None and self.wrapper_finish_check_fn is None:
             raise ValueError("At least one of wrapper_running_check_fn and wrapper_finish_check_fn must be specified!")
         if self.wrapper_running_check_fn is not None:
@@ -152,7 +152,7 @@ class Simulation:
                 raise RuntimeError(
                     f"The simulation is not finished and {self.wrapper_finish_check_fn} is not generated!"
                     f"Please check the output {self.base_dir}/stdout.txt for more information.")
-        new_comm.Free()
+        child_comm.Free()
         return
 
     def get_covering_grid(self, variable):

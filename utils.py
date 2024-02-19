@@ -73,21 +73,20 @@ def wait_for_file(file_path, timeout=60, poll_interval=1):
     return False
 
 
-def generate_python_wrapper(exec_command, wrapper_name="wrapper.py", wrapper_path=None):
+def generate_shell_wrapper(exec_command, wrapper_name="wrapper.sh", wrapper_path=None, wrapper_output="stdout.txt"):
     """
     Generate a wrapper script for running the executable
     so that the stdout and stderr can be redirected to files when using MPI.COMM_SELF.Spawn
     :param exec_command: name of the executable
     :param wrapper_name:
     :param wrapper_path: path of the wrapper script
+    :param wrapper_output: name of the file to redirect the stdout
     :return: None
     """
     if wrapper_path is None:
         wrapper_path = os.getcwd()
-    code_to_write = f"""import subprocess
-with open("stdout.txt", "w") as stdout, open("stderr.txt", "w") as stderr:
-    p = subprocess.Popen(["{exec_command}"], shell=True, stdout=stdout, stderr=stderr)
-    p.wait()
+    code_to_write = f"""#!/bin/bash
+./{exec_command} > {wrapper_output}
     """
     file_path = f"{wrapper_path}/{wrapper_name}"
     with open(file_path, 'w') as file:

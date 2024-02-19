@@ -1,5 +1,5 @@
 from sim_controller import update_parameter, find_latest_checkpoint, load_checkpoint
-from utils import generate_python_wrapper, wait_for_file
+from utils import generate_shell_wrapper, wait_for_file
 import subprocess
 import os
 import warnings
@@ -118,7 +118,7 @@ class Simulation:
                 # Now evolve the initial condition to t0, to obtain u0 which is the basic state
                 update_parameter(self.base_dir + "/" + self.param_fn, init_params)
 
-                self.run_simulation_with_python_wrapper()
+                self.run_simulation_with_shell_wrapper()
 
                 if not pathlib.Path(self.base_dir + "/" + self.u0_fn).exists():
                     raise ValueError(
@@ -129,13 +129,13 @@ class Simulation:
             self.mpi_comm.barrier()
             return
 
-    def run_simulation_with_python_wrapper(self):
-        generate_python_wrapper(self.exec_command, wrapper_path=self.base_dir)
+    def run_simulation_with_shell_wrapper(self):
+        generate_shell_wrapper(self.exec_command, wrapper_path=self.base_dir, wrapper_name="wrapper.sh")
         # Now start the simulation
         # spawn might not honor os.chdir, so we pass in mpi.info to change the working directory
         info = self.mpi.Info.Create()
         info.Set("wdir", self.base_dir)
-        new_comm = self.mpi_comm_self.Spawn(command='python3', args=["wrapper.py"] + self.wrapper_args.split(),
+        new_comm = self.mpi_comm_self.Spawn(command='bash', args=["wrapper.sh"] + self.wrapper_args.split(),
                                             maxprocs=self.wrapper_nproc, info=info)
         if self.wrapper_running_check_fn is None and self.wrapper_finish_check_fn is None:
             raise ValueError("At least one of wrapper_running_check_fn and wrapper_finish_check_fn must be specified!")
@@ -265,7 +265,7 @@ class Simulation:
             os.remove(self.base_dir + "/" + ut_fn)
 
         # Now start the simulation
-        self.run_simulation_with_python_wrapper()
+        self.run_simulation_with_shell_wrapper()
 
         if not pathlib.Path(self.base_dir + "/" + ut_fn).exists():
             raise ValueError("The evolving state file might be generated, but you might guess the file name wrong!")

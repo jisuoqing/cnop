@@ -163,8 +163,10 @@ class Simulation:
 
         if self.wrapper_successful_check_fn is not None:
             if not pathlib.Path(self.base_dir + "/" + self.wrapper_successful_check_fn).exists():
-                raise ValueError(f"The finish check file {self.wrapper_successful_check_fn} is not generated! "
-                                 f"You should check the simulation output {self.wrapper_output} for more information.")
+                raise ValueError(f"The finish check file {self.base_dir}/{self.wrapper_successful_check_fn} is not "
+                                 f"generated!\n"
+                                 f"You should check the simulation output {self.base_dir}/{self.wrapper_output} or "
+                                 f"simulation log file for more information.")
 
         return
 

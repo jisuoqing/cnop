@@ -102,7 +102,7 @@ def generate_shell_wrapper(exec_command, wrapper_name, wrapper_output,
     if wrapper_path is None:
         wrapper_path = os.getcwd()
     code_to_write = f"""#!/bin/bash
-{exec_command} > {wrapper_output}
+{exec_command} &> {wrapper_output}
 echo "{ending_remark}" >> {wrapper_output}
     """
     file_path = f"{wrapper_path}/{wrapper_name}"

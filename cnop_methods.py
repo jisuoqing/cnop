@@ -83,10 +83,10 @@ class Spg2Defn:
         # step-2:   Backtracking
         while self.cgnorm > self.eps and self.iter0 <= self.max_iter and self.ifcnt <= self.max_ifcnt:
 
+            self.iter0 += 1
+
             if self.mpi_rank == 0:
                 print("----------------------- iter", self.iter0, "-----------------------")
-
-            self.iter0 += 1
 
             # step-2.1: compute d
             d = self.u_pert - self.lambda_ * self.g

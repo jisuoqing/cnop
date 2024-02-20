@@ -59,34 +59,51 @@ def wait_for_file(file_path, timeout=60, poll_interval=1):
     # first, check if the file already exists with the timeout
     while time.time() - start_time < timeout:
         if os.path.exists(file_path):
-            # then, check if the file is modified with the for the polling interval
-            being_modified = True
-            while being_modified:
-                current_mtime = os.path.getmtime(file_path)
-                time.sleep(poll_interval)
-                if current_mtime == os.path.getmtime(file_path):
-                    being_modified = False
             return True
         else:
             time.sleep(poll_interval)
+    return False
+
+
+def wait_for_last_line(file_path, ending_remark, timeout=np.inf, poll_interval=10):
+    """
+    Wait for the last line of a file to contain a specific ending remark
+    :param file_path: path of the file
+    :param ending_remark: ending remark to be checked
+    :param timeout: timeout if the file does not contain the ending remark
+    :param poll_interval: poll interval in seconds
+    :return: True if the file contains the ending remark before timeout, False otherwise
+    """
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        with open(file_path, 'r') as file:
+            lines = file.readlines()
+            if len(lines) > 0:
+                if lines[-1].strip() == ending_remark:
+                    return True
+        time.sleep(poll_interval)
 
     return False
 
 
-def generate_shell_wrapper(exec_command, wrapper_name="wrapper.sh", wrapper_path=None, wrapper_output="stdout.txt"):
+def generate_shell_wrapper(exec_command, wrapper_name, wrapper_output,
+                           wrapper_path=None, ending_remark=""):
     """
     Generate a wrapper script for running the executable
-    so that the stdout and stderr can be redirected to files when using MPI.COMM_SELF.Spawn
-    :param exec_command: name of the executable
-    :param wrapper_name:
-    :param wrapper_path: path of the wrapper script
+    so that the stdout can be redirected to files when using MPI.COMM_SELF.Spawn
+    :param exec_command: name of the executable written in the wrapper script
+    :param wrapper_name: name of the wrapper script
     :param wrapper_output: name of the file to redirect the stdout
+    :param wrapper_path: path of the wrapper script
+    :param ending_remark: ending remark to be written to the wrapper_output
     :return: None
     """
     if wrapper_path is None:
         wrapper_path = os.getcwd()
     code_to_write = f"""#!/bin/bash
 {exec_command} > {wrapper_output}
+echo "{ending_remark}" >> {wrapper_output}
     """
     file_path = f"{wrapper_path}/{wrapper_name}"
     with open(file_path, 'w') as file:

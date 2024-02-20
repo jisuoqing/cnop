@@ -1,12 +1,16 @@
+import numpy as np
 from solvers.simulation import Simulation
 
 
 class Flash(Simulation):
     def __init__(self, t0, base_dir, exec_command, wrapper_nproc,
                  basename, pert_var, grow_var,
+                 wrapper_name="wrapper.sh",
+                 wrapper_output="stdout.txt",
                  wrapper_check_poll_interval=1.,
-                 wrapper_running_check_timeout=10.,
-                 wrapper_finish_check_timeout=10.,
+                 wrapper_start_check_timeout=10.,
+                 wrapper_finish_check_timeout=np.inf,
+
                  yt_derived_fields=None,
                  link_list=None, copy_list=None):
         # TODO: add a warning of wrapper_nproc != iprocs * jprocs * kprocs
@@ -28,20 +32,19 @@ class Flash(Simulation):
         }
         self.basename = basename
         u0_fn = "%s_hdf5_chk_0001" % self.basename
+        wrapper_successful_check_fn = u0_fn
+
         if copy_list is None:
             copy_list = []
         copy_list.append("flash4")  # Flash executable
 
         exec_args = ""
-        # use Flash log file as the indicator of running instead of stdout.txt (which is not updated in time)
-        wrapper_running_check_fn = None  # basename + ".log"
-        wrapper_finish_check_fn = u0_fn
 
         super().__init__(None, base_dir,
                          exec_command, exec_args, wrapper_nproc,
-                         wrapper_running_check_fn, wrapper_running_check_timeout,
-                         wrapper_finish_check_fn, wrapper_finish_check_timeout,
-                         wrapper_check_poll_interval,
+                         wrapper_name, wrapper_output,
+                         wrapper_start_check_timeout, wrapper_finish_check_timeout,
+                         wrapper_check_poll_interval, wrapper_successful_check_fn,
                          init_params, "flash.par", u0_fn,
                          pert_var, grow_var, yt_derived_fields=yt_derived_fields,
                          link_list=link_list, copy_list=copy_list)
@@ -73,10 +76,8 @@ class Flash(Simulation):
 
         # Delete FLASH log and .dat files which will not be overwritten and will increase in size if not deleted
         delete_fn = ["flash.dat", self.basename + ".log"]
-        wrapper_finish_check_fn = ut_fn
 
         ut = super().proceed_simulation(params, t1,
-                                        wrapper_finish_check_fn=wrapper_finish_check_fn,
                                         u_pert=u_pert, u_pert_fn=u_pert_fn, ut_fn=ut_fn, delete_fn=delete_fn,
-                                        fork_id=fork_id)
+                                        fork_id=fork_id, wrapper_successful_check_fn=ut_fn)
         return ut

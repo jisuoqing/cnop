@@ -125,7 +125,7 @@ class Simulation:
                 logging.debug("The basic state u0 is evolved from the initial condition u_init "
                               "and saved as {}.".format(self.u0_fn))
             # set a barrier to make sure the basic state is generated before proceeding
-            self.mpi_comm.barrier()
+            self.mpi_comm.Barrier()
             return
 
     def run_simulation_with_shell_wrapper(self):

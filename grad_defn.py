@@ -51,7 +51,6 @@ def grad_defn(process, u_pert, t, epsilon):
         time_elapsed[i] = time_end - time_start
 
     # get the maximum and minimum of time_elapsed
-    mpi_comm.Barrier()
     time_min = np.zeros(2, dtype=float)
     time_max = np.zeros(2, dtype=float)
     mpi_comm.Reduce(np.array([time_elapsed.min(), time_elapsed.sum()]), time_min, op=process.mpi.MIN)

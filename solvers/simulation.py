@@ -52,6 +52,7 @@ class Simulation:
         self.mpi_rank = self.mpi_comm.Get_rank()
         self.mpi_size = self.mpi_comm.Get_size()
 
+        self.mpi_root_dir = os.getcwd()
         try:
             last_checkpoint_fn = find_latest_checkpoint(base_dir, self.__class__.__name__ + "_checkpoint")
         except FileNotFoundError:
@@ -144,7 +145,7 @@ class Simulation:
         # Now start the simulation
         # spawn might not honor os.chdir, so we pass in mpi.info to change the working directory
         info = self.mpi.Info.Create()
-        info.Set("wdir", self.base_dir)
+        info.Set("wdir", f"{self.mpi_root_dir}/{self.base_dir}")
         child_comm = self.mpi_comm_self.Spawn(command='bash', args=[self.wrapper_name] + self.wrapper_args.split(),
                                               maxprocs=self.wrapper_nproc, info=info)
         info.Free()

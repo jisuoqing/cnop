@@ -142,10 +142,19 @@ class Simulation:
         generate_shell_wrapper(self.exec_command, self.wrapper_name, self.wrapper_output,
                                wrapper_path=self.base_dir,
                                ending_remark=ending_remark)
+
         # Now start the simulation
-        # spawn might not honor os.chdir, so we pass in mpi.info to change the working directory
         info = self.mpi.Info.Create()
+
+        # Spawn might not honor os.chdir, so we pass in mpi.info to change the working directory
+        # Use absolute path since some mpi version can get confused
         info.Set("wdir", f"{self.mpi_root_dir}/{self.base_dir}")
+
+        # Make child process on the same node with the parent process, avoid crossing-node failure/deffiency
+        # See: https://stackoverflow.com/questions/47743425/controlling-node-mapping-of-mpi-comm-spawn
+        hostname = self.mpi.Get_processor_name()
+        info.Set("host", hostname)
+
         child_comm = self.mpi_comm_self.Spawn(command='bash', args=[self.wrapper_name] + self.wrapper_args.split(),
                                               maxprocs=self.wrapper_nproc, info=info)
         info.Free()

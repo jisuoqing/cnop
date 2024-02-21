@@ -45,12 +45,12 @@ if __name__ == "__main__":
                       link_list=["cool_func.dat"])
         dens = flash.get_covering_grid("density")
         pert_mask = (dens > dens.max() * 0.1)
-        u_pert = flash.generate_u_pert(pert_delta=dens.max() * 0.1, pert_mask=pert_mask)
+        u_pert = flash.generate_u_pert(pert_delta=dens.max() * 0.01, pert_mask=pert_mask)
         t1 = 50.
         # first, feeding in all-space perturbations to make sure the sim likes it
         # flash.proceed(t1 * 0.1, u_pert=u_pert, fork_id=100)
 
-        spg2 = Spg2Defn(flash, u_pert, t1, pert_delta=dens.max() * 0.1, grad_epsilon=1.e-4)  # pert_mask=pert_mask
+        spg2 = Spg2Defn(flash, u_pert, t1, pert_delta=dens.max() * 1e-4, grad_epsilon=1.e-4)  # pert_mask=pert_mask
         # save the result
         if flash.mpi_rank == 0:
             np.savez("flash_u_pert_best.npz", u_pert_best=spg2.u_pert_best, j_best=spg2.j_best)

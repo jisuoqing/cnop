@@ -43,7 +43,7 @@ def grad_defn(process, u_pert, t, epsilon):
     time_elapsed = np.empty(len(my_indices), dtype=float)
     for i, index in enumerate(my_indices):
         if mpi_rank == 0:
-            print_progress(f"Computing gradient [{i + 1}/{len(my_indices)}]...")
+            print_progress(f"Computing gradient [{i + 1}/{len(my_indices)}] at rank {mpi_rank}...")
 
         logging.debug(
             "Rank {}: Computing gradient [{}/{}] for index {}".format(mpi_rank, i + 1, len(my_indices), index))

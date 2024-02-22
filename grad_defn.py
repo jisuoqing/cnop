@@ -61,9 +61,10 @@ def grad_defn(process, u_pert, t, epsilon):
     mpi_comm.Reduce(np.array([time_elapsed.min(), time_elapsed.sum()]), time_min, op=process.mpi.MIN)
     mpi_comm.Reduce(np.array([time_elapsed.max(), time_elapsed.sum()]), time_max, op=process.mpi.MAX)
     if mpi_rank == 0:
-        print("Gradient computation time: \n"
-              "Per run:  min = {}, max = {}, \n"
-              "Per core: min = {}, max = {}".format(time_min[0], time_max[0], time_min[1], time_max[1]))
+        print('\x1b[1A')  # reset the line due to print_progress
+        print("Computing time across all ranks: \n"
+              "Single run: min = {}, max = {}, \n"
+              "Total  run: min = {}, max = {}".format(time_min[0], time_max[0], time_min[1], time_max[1]))
     # gather all the gradients
     g_global = np.zeros(shape)
     logging.debug("Rank {}: Gathering gradients...".format(mpi_rank))

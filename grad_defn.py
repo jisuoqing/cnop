@@ -42,9 +42,6 @@ def grad_defn(process, u_pert, t, epsilon):
     g_local = np.zeros(shape)
     time_elapsed = np.empty(len(my_indices), dtype=float)
     for i, index in enumerate(my_indices):
-        if mpi_rank == 0:
-            print_progress(f"Computing gradient [{i + 1}/{len(my_indices)}] at rank {mpi_rank}...")
-
         logging.debug(
             "Rank {}: Computing gradient [{}/{}] for index {}".format(mpi_rank, i + 1, len(my_indices), index))
         time_start = time.time()
@@ -53,6 +50,10 @@ def grad_defn(process, u_pert, t, epsilon):
         logging.debug("Rank {}: Gradient [{}/{}] for index {} is {}".format(mpi_rank, i + 1, len(my_indices), index,
                                                                             g_local[tuple(index)]))
         time_elapsed[i] = time_end - time_start
+
+        if mpi_rank == 0:
+            print_progress(f"Finished [{i + 1}/{len(my_indices)}] at rank {mpi_rank} in {time_elapsed[i]:.2f} s, "
+                           f"min: {time_elapsed[:i+1].min():.2f} s, max: {time_elapsed[:i+1].max():.2f} s")
 
     # get the maximum and minimum of time_elapsed
     time_min = np.zeros(2, dtype=float)

@@ -1,6 +1,7 @@
 import numpy as np
 import os
 import time
+import sys
 
 
 def do_projection(u, delta, mask):
@@ -110,3 +111,11 @@ echo "{ending_remark}" >> {wrapper_output}
         file.write(code_to_write)
 
     return
+
+
+def print_progress(info):
+    # TODO: polish for ending and MPI rank; example: Pprogress package
+    print()
+    print(info, end="")
+    sys.stdout.write('\x1b[1A')
+    sys.stdout.flush()

@@ -1,6 +1,7 @@
 import numpy as np
 import logging
 import time
+from utils import print_progress
 
 
 def grad_defn(process, u_pert, t, epsilon):
@@ -41,6 +42,9 @@ def grad_defn(process, u_pert, t, epsilon):
     g_local = np.zeros(shape)
     time_elapsed = np.empty(len(my_indices), dtype=float)
     for i, index in enumerate(my_indices):
+        if mpi_rank == 0:
+            print_progress(f"Computing gradient [{i + 1}/{len(my_indices)}]...")
+
         logging.debug(
             "Rank {}: Computing gradient [{}/{}] for index {}".format(mpi_rank, i + 1, len(my_indices), index))
         time_start = time.time()

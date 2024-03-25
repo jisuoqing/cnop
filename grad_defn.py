@@ -1,13 +1,15 @@
 import numpy as np
 import logging
+import pathlib
 import time
 from utils import print_progress
 
 
-def grad_defn(process, u_pert, t, epsilon):
+def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None):
     mpi_comm = process.mpi_comm
     mpi_size = process.mpi_size
     mpi_rank = process.mpi_rank
+    mpi_root_dir = process.mpi_root_dir
 
     if mpi_rank == 0:
         logging.debug("Computing gradient...")
@@ -45,7 +47,16 @@ def grad_defn(process, u_pert, t, epsilon):
         logging.debug(
             "Rank {}: Computing gradient [{}/{}] for index {}".format(mpi_rank, i + 1, len(my_indices), index))
         time_start = time.time()
-        g_local[tuple(index)] = compute_g(mpi_rank, index, u_pert, epsilon, t, ut, j_val, process)
+
+        # create tmp files for grad_defn restart
+        tmp_fn = "{}/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0, index[0], index[1], index[2])
+        if restart and pathlib.Path(tmp_fn).exists():
+            g_local[tuple(index)] = np.load(tmp_fn)
+            logging.debug("Rank {}: Loaded gradient from {}".format(mpi_rank, tmp_fn))
+        else:
+            g_local[tuple(index)] = compute_g(mpi_rank, index, u_pert, epsilon, t, ut, j_val, process)
+            np.save(tmp_fn, g_local[tuple(index)])
+
         time_end = time.time()
         logging.debug("Rank {}: Gradient [{}/{}] for index {} is {}".format(mpi_rank, i + 1, len(my_indices), index,
                                                                             g_local[tuple(index)]))
@@ -70,6 +81,11 @@ def grad_defn(process, u_pert, t, epsilon):
     logging.debug("Rank {}: Gathering gradients...".format(mpi_rank))
     mpi_comm.Allreduce(g_local, g_global, op=process.mpi.SUM)
     logging.debug("Rank {}: Gradients gathered".format(mpi_rank))
+
+    # At these stage, all ranks have computed the gradients, so we can delete the tmp files
+    for index in my_indices:
+        tmp_fn = "{}/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0, index[0], index[1], index[2])
+        pathlib.Path(tmp_fn).unlink()
 
     return g_global
 

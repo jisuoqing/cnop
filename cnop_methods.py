@@ -18,6 +18,8 @@ class Spg2Defn:
         self.mpi_comm = process.mpi_comm
         self.mpi_rank = self.mpi_comm.Get_rank()
 
+        grad_defn_already_restarted = False
+
         if process.restart:
             # load the method info from the restart checkpoint
             load_checkpoint(process.restart_checkpoint_fn, "method", self)
@@ -128,7 +130,10 @@ class Spg2Defn:
             if j_new < self.j_best:
                 self.j_best = j_new
                 self.u_pert_best = u_pert_new.copy()
-            g_new = grad_defn(process, u_pert_new, t1, self.grad_epsilon)
+            g_new = grad_defn(process, u_pert_new, t1, self.grad_epsilon,
+                              restart=(process.restart and (not grad_defn_already_restarted)),
+                              iter0=self.iter0)
+            grad_defn_already_restarted = True
             self.igcnt += 1
 
             # step-3: compute lambda (alpha in paper)

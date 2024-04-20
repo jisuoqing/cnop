@@ -2,7 +2,7 @@ import numpy as np
 import logging
 import pathlib
 import time
-from utils import print_progress
+from utils import print_progress, wait_for_files
 
 
 def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None):
@@ -65,6 +65,16 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None):
         if mpi_rank == 0:
             print_progress(f"Finished [{i + 1}/{len(my_indices)}] at rank {mpi_rank} in {time_elapsed[i]:.2f} s, "
                            f"min: {time_elapsed[:i+1].min():.2f} s, max: {time_elapsed[:i+1].max():.2f} s")
+
+    # get the list of last tmp file name for each rank
+    tmp_fns_last = []
+    for each_rank in range(mpi_size):
+        tmp_fns_last.append("{}/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0,
+                                                                                 *indices_per_process[each_rank][-1]))
+    if not wait_for_files(tmp_fns_last, timeout=60, poll_interval=1):
+        logging.error("Rank {}: Not all ranks finished computing gradient".format(mpi_rank))
+        mpi_comm.Abort()
+        process.mpi.Finalize()
 
     # get the maximum and minimum of time_elapsed
     time_min = np.zeros(2, dtype=float)

@@ -66,6 +66,25 @@ def wait_for_file(file_path, timeout=60, poll_interval=1):
     return False
 
 
+def wait_for_files(file_paths, timeout=60, poll_interval=1):
+    """
+    Wait for a list of files to appear
+    :param file_paths: list of paths of the files
+    :param timeout: timeout if file_paths do not exist
+    :param poll_interval: poll interval in seconds
+    :return: True if all files appear before timeout, False otherwise
+    """
+    start_time = time.time()
+
+    # first, check if the file already exists with the timeout
+    while time.time() - start_time < timeout:
+        if all([os.path.exists(file_path) for file_path in file_paths]):
+            return True
+        else:
+            time.sleep(poll_interval)
+    return False
+
+
 def wait_for_last_line(file_path, ending_remark, timeout=np.inf, poll_interval=10):
     """
     Wait for the last line of a file to contain a specific ending remark

@@ -1,0 +1,17 @@
+#!/bin/bash
+#SBATCH -J cnop
+#SBATCH --account=shao
+#SBATCH --cluster=swarm
+#SBATCH --partition=xh321
+#SBATCH -t 1:00:00
+#SBATCH -N 2
+#SBATCH --tasks-per-node=72
+
+mpirun --oversubscribe --map-by ppr:18:node -np 36 python3 run_flash_dev.py
+
+# This is an example of job submission, where 72 procs per node.
+# This uses 2 nodes and 36 parent MPI in total, i.e., 18 parent/node
+# Each parent MPI has 4 child MPI, so 4 child/parent * 18 parent/node = 72 child/node
+# However, note that each node actually runs 18 parent + 72 child = 90 MPI, so oversubscribe is needed
+# To drop oversubscribe option, save one child to allocate parent, so each node has 72 parent+child
+# but this is usually not necessary, since parent does little work when child is executing

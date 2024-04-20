@@ -110,10 +110,6 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None):
     mpi_comm.Allreduce(g_local, g_global, op=process.mpi.SUM)
     logging.debug("Rank {}: Gradients gathered".format(mpi_rank))
 
-    if mpi_rank == 0:
-        if any(g_global == 0):
-            print("Rank {}: There are zero gradients, which might be incorrect".format(mpi_rank))
-
     # At these stage, all ranks have computed/loaded the gradients, so we can delete the tmp files
     for index in my_indices:
         tmp_fn = "{}/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0,

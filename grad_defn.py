@@ -52,8 +52,8 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None):
                     g_local[tuple(index)] = np.load(tmp_fn)
                     logging.debug("Rank {}: Loaded gradient for index {}".format(mpi_rank, index))
                 indices_to_be_computed.remove(index)
-        if mpi_rank == 0 and (len(g_local) - len(indices_to_be_computed)) > 0:
-            print(f"Rank {mpi_rank}: {len(g_local) - len(indices_to_be_computed)} indices already computed and loaded; "
+        if mpi_rank == 0 and (g_local.size - len(indices_to_be_computed)) > 0:
+            print(f"Rank {mpi_rank}: {g_local.size - len(indices_to_be_computed)} indices already computed and loaded; "
                   f"{len(indices_to_be_computed)} indices to be computed")
 
     mpi_comm.Barrier()

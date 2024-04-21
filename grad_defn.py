@@ -5,7 +5,7 @@ import time
 from utils import print_progress, wait_for_files
 
 
-def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None):
+def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None, resume_flag_file="resume_needed.txt"):
     mpi_comm = process.mpi_comm
     mpi_size = process.mpi_size
     mpi_rank = process.mpi_rank
@@ -89,6 +89,10 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None):
                                 format(mpi_root_dir, iter0, *indices_per_process[each_rank][-1]))
     if not wait_for_files(tmp_fns_last, timeout=60, poll_interval=1):
         logging.error("Rank {}: Not all ranks finished computing gradient".format(mpi_rank))
+        # if not all ranks have finished computing gradient, generate a resume flag file for the job submission script
+        if not pathlib.Path(f"{process.mpi_root_dir}/{resume_flag_file}").exists():
+            pathlib.Path(f"{process.mpi_root_dir}/{resume_flag_file}").touch()
+        # abort the simulation
         mpi_comm.Abort()
         process.mpi.Finalize()
 
@@ -117,6 +121,10 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None):
                                                                           index[0], index[1], index[2])
             if pathlib.Path(tmp_fn).exists():
                 pathlib.Path(tmp_fn).unlink()
+
+        # no need to resume the simulation since the gradients are successfully computed
+        if pathlib.Path(f"{process.mpi_root_dir}/{resume_flag_file}").exists():
+            pathlib.Path(f"{process.mpi_root_dir}/{resume_flag_file}").unlink()
 
     return g_global
 

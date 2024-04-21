@@ -7,7 +7,11 @@
 #SBATCH -N 2
 #SBATCH --tasks-per-node=72
 
-mpirun --oversubscribe --map-by ppr:18:node -np 36 python3 run_flash_dev.py
+executed=false
+while [ "$executed" = false ] || [ -f resume_needed.txt ]; do
+    mpirun --oversubscribe --map-by ppr:18:node -np 36 python3 run_flash_dev.py
+    executed=true
+done
 
 # This is an example of job submission, where 72 procs per node.
 # This uses 2 nodes and 36 parent MPI in total, i.e., 18 parent/node
@@ -15,3 +19,6 @@ mpirun --oversubscribe --map-by ppr:18:node -np 36 python3 run_flash_dev.py
 # However, note that each node actually runs 18 parent + 72 child = 90 MPI, so oversubscribe is needed
 # To drop oversubscribe option, save one child to allocate parent, so each node has 72 parent+child
 # but this is usually not necessary, since parent does little work when child is executing
+
+# When the grad_defn crashes abnormally, it will generate a file named resume_needed.txt
+# This script will keep running until cnop finishes normally when the resume_needed.txt is removed

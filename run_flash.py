@@ -21,15 +21,15 @@ if __name__ == "__main__":
 
     if problem == "cnop1d":
 
-        t0 = 10.
+        t0 = 5.
         flash = Flash(t0, "../flash4/cnop1d", "./flash4", 2,
                       "cnop1d", "dens", "dens",
                       # shorter polling interval since the simulation is fast
                       wrapper_check_poll_interval=0.1
                       )
-        u_pert = flash.generate_u_pert(pert_delta=0.1)
-        t1 = 30.
-        spg2 = Spg2Defn(flash, u_pert, t1, 8e-6)
+        u_pert = flash.generate_u_pert(pert_delta=1e-2)
+        t1 = 10.
+        spg2 = Spg2Defn(flash, u_pert, t1, 1e-2, non_neg=False)
         # save the result
         if flash.mpi_rank == 0:
             np.savez("flash_u_pert_best.npz", u_pert_best=spg2.u_pert_best, j_best=spg2.j_best)

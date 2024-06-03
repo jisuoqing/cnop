@@ -4,7 +4,7 @@ import time
 import sys
 
 
-def do_projection(u, delta, mask):
+def do_projection(u, delta, mask, non_neg=False):
     # sum u**2 * dx = sum u**2 * L * (dx / L) = sum u**2 / n * L, let L = 1
     if mask is None:
         mask = np.ones_like(u, dtype=bool)
@@ -20,6 +20,8 @@ def do_projection(u, delta, mask):
     else:
         proj_u = u
         proj_u[mask] = delta / np.sqrt(mean) * u[mask]
+    if non_neg:
+        proj_u[proj_u < 0] = 0
     return proj_u
 
 

@@ -5,7 +5,7 @@ import time
 from utils import print_progress, wait_for_files
 
 
-def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None, resume_flag_file="resume_needed.txt"):
+def grad_defn(process, u_pert, t, epsilon, iter0=None, resume_flag_file="resume_needed.txt"):
     mpi_comm = process.mpi_comm
     mpi_size = process.mpi_size
     mpi_rank = process.mpi_rank
@@ -41,20 +41,23 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None, resume_fla
 
     indices_to_be_computed = list(np.ndindex(shape))
 
-    if restart:
-        # record the indices that have been computed in the last iteration and prepare to compute the rest
-        for index in indices_to_be_computed.copy():
-            tmp_fn = "{}/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0, index[0], index[1], index[2])
-            if pathlib.Path(tmp_fn).exists():
-                if mpi_rank == 0:
-                    # loading is done by rank 0 only to avoid duplicated counting,
-                    # and then broadcasted to all ranks by Allreduce at the end
-                    g_local[tuple(index)] = np.load(tmp_fn)
-                    logging.debug("Rank {}: Loaded gradient for index {}".format(mpi_rank, index))
-                indices_to_be_computed.remove(index)
-        if mpi_rank == 0 and (g_local.size - len(indices_to_be_computed)) > 0:
-            print(f"Rank {mpi_rank}: {g_local.size - len(indices_to_be_computed)} indices already computed and loaded; "
-                  f"{len(indices_to_be_computed)} indices to be computed")
+    # record the indices that have been computed in the last iteration and prepare to compute the rest
+    for index in indices_to_be_computed.copy():
+        tmp_fn = "{}/tmp/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0, index[0], index[1], index[2])
+        if pathlib.Path(tmp_fn).exists():
+            if mpi_rank == 0:
+                # loading is done by rank 0 only to avoid duplicated counting,
+                # and then broadcasted to all ranks by Allreduce at the end
+                g_local[tuple(index)] = np.load(tmp_fn)
+                logging.debug("Rank {}: Loaded gradient for index {}".format(mpi_rank, index))
+            indices_to_be_computed.remove(index)
+    if mpi_rank == 0 and (g_local.size - len(indices_to_be_computed)) > 0:
+        print(f"Rank {mpi_rank}: {g_local.size - len(indices_to_be_computed)} indices already computed and loaded; "
+              f"{len(indices_to_be_computed)} indices to be computed")
+
+    # create tmp directory if it does not exist
+    if mpi_rank == 0 and not pathlib.Path(f"{mpi_root_dir}/tmp").exists():
+        pathlib.Path(f"{mpi_root_dir}/tmp").mkdir()
 
     mpi_comm.Barrier()
 
@@ -68,7 +71,7 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None, resume_fla
         time_start = time.time()
 
         # create tmp files for grad_defn restart
-        tmp_fn = "{}/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0, index[0], index[1], index[2])
+        tmp_fn = "{}/tmp/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0, index[0], index[1], index[2])
         g_local[tuple(index)] = compute_g(mpi_rank, index, u_pert, epsilon, t, ut, j_val, process)
         np.save(tmp_fn, g_local[tuple(index)])
 
@@ -85,7 +88,7 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None, resume_fla
     tmp_fns_last = []
     for each_rank in range(mpi_size):
         if len(indices_per_process[each_rank]) > 0:  # if there are indices to be computed by this rank
-            tmp_fns_last.append("{}/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".
+            tmp_fns_last.append("{}/tmp/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".
                                 format(mpi_root_dir, iter0, *indices_per_process[each_rank][-1]))
     if not wait_for_files(tmp_fns_last, timeout=60, poll_interval=1):
         logging.error("Rank {}: Not all ranks finished computing gradient".format(mpi_rank))
@@ -97,16 +100,15 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None, resume_fla
         process.mpi.Finalize()
 
     # get the maximum and minimum of time_elapsed
-    if not restart:
-        time_min = np.zeros(2, dtype=float)
-        time_max = np.zeros(2, dtype=float)
-        mpi_comm.Reduce(np.array([time_elapsed.min(), time_elapsed.sum()]), time_min, op=process.mpi.MIN)
-        mpi_comm.Reduce(np.array([time_elapsed.max(), time_elapsed.sum()]), time_max, op=process.mpi.MAX)
-        if mpi_rank == 0:
-            print('\x1b[1A')  # reset the line due to print_progress
-            print("Computing time across all ranks: \n"
-                  "Single run: min = {}, max = {}, \n"
-                  "Total  run: min = {}, max = {}".format(time_min[0], time_max[0], time_min[1], time_max[1]))
+    time_min = np.zeros(2, dtype=float)
+    time_max = np.zeros(2, dtype=float)
+    mpi_comm.Reduce(np.array([time_elapsed.min(), time_elapsed.sum()]), time_min, op=process.mpi.MIN)
+    mpi_comm.Reduce(np.array([time_elapsed.max(), time_elapsed.sum()]), time_max, op=process.mpi.MAX)
+    if mpi_rank == 0:
+        print('\x1b[1A')  # reset the line due to print_progress
+        print("Computing time across all ranks: \n"
+              "Single run: min = {}, max = {}, \n"
+              "Total  run: min = {}, max = {}".format(time_min[0], time_max[0], time_min[1], time_max[1]))
 
     # gather all the gradients
     g_global = np.zeros(shape)
@@ -117,7 +119,7 @@ def grad_defn(process, u_pert, t, epsilon, restart=False, iter0=None, resume_fla
     # At these stage, all ranks have computed/loaded the gradients, so we can delete the tmp files for iter0
     if mpi_rank == 0:
         for index in list(np.ndindex(shape)):
-            tmp_fn = "{}/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0,
+            tmp_fn = "{}/tmp/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".format(mpi_root_dir, iter0,
                                                                           index[0], index[1], index[2])
             if pathlib.Path(tmp_fn).exists():
                 pathlib.Path(tmp_fn).unlink()

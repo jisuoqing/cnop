@@ -64,7 +64,7 @@ class Spg2Defn:
             self.ifcnt += 1
 
             # compute gradient (adjoint method)
-            self.g = grad_defn(process, self.u_pert, t1, self.grad_epsilon, self.iter0)
+            self.g = grad_defn(process, self.u_pert, t1, self.grad_epsilon, iter0=self.iter0)
             self.igcnt += 1
 
             # step-1: discriminate whether the current point is stationary

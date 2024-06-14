@@ -90,14 +90,21 @@ def grad_defn(process, u_pert, t, epsilon, iter0=None, resume_flag_file="resume_
         if len(indices_per_process[each_rank]) > 0:  # if there are indices to be computed by this rank
             tmp_fns_last.append("{}/tmp/tmp_grad_defn_iter_{}_index_{}_{}_{}.npy".
                                 format(mpi_root_dir, iter0, *indices_per_process[each_rank][-1]))
-    if not wait_for_files(tmp_fns_last, timeout=60, poll_interval=1):
-        logging.error("Rank {}: Not all ranks finished computing gradient".format(mpi_rank))
-        # if not all ranks have finished computing gradient, generate a resume flag file for the job submission script
-        if not pathlib.Path(f"{process.mpi_root_dir}/{resume_flag_file}").exists():
-            pathlib.Path(f"{process.mpi_root_dir}/{resume_flag_file}").touch()
-        # abort the simulation
-        mpi_comm.Abort()
-        process.mpi.Finalize()
+
+    max_jobs_per_process = max([len(indices) for indices in indices_per_process])
+    # only check if all ranks have finished computing gradient when the ranks have the same/max number of jobs
+    # to avoid premature abort due to the rank with fewer jobs finishing earlier
+    # TODO: this might still cause freeze if all (maybe few) ranks having the same/max number of jobs are stuck
+    if len(my_indices) == max_jobs_per_process:
+        if not wait_for_files(tmp_fns_last, timeout=60, poll_interval=1):
+            logging.error("Rank {}: Not all ranks finished computing gradient".format(mpi_rank))
+            # if not all ranks have finished computing gradient, generate a resume flag file for the job submission
+            # script
+            if not pathlib.Path(f"{process.mpi_root_dir}/{resume_flag_file}").exists():
+                pathlib.Path(f"{process.mpi_root_dir}/{resume_flag_file}").touch()
+            # abort the simulation
+            mpi_comm.Abort()
+            process.mpi.Finalize()
 
     # get the maximum and minimum of time_elapsed
     time_min = np.zeros(2, dtype=float)

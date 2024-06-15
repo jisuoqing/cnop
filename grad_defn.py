@@ -109,8 +109,19 @@ def grad_defn(process, u_pert, t, epsilon, iter0=None, resume_flag_file="resume_
     # get the maximum and minimum of time_elapsed
     time_min = np.zeros(2, dtype=float)
     time_max = np.zeros(2, dtype=float)
-    mpi_comm.Reduce(np.array([time_elapsed.min(), time_elapsed.sum()]), time_min, op=process.mpi.MIN)
-    mpi_comm.Reduce(np.array([time_elapsed.max(), time_elapsed.sum()]), time_max, op=process.mpi.MAX)
+    if len(my_indices) > 0:
+        time_elapsed_local_min = time_elapsed.min()
+        time_elapsed_local_max = time_elapsed.max()
+        time_elapsed_local_sum_min = time_elapsed.sum()
+        time_elapsed_local_sum_max = time_elapsed.sum()
+    else:
+        time_elapsed_local_min = np.inf
+        time_elapsed_local_max = 0.
+        time_elapsed_local_sum_min = np.inf
+        time_elapsed_local_sum_max = 0.
+
+    mpi_comm.Reduce(np.array([time_elapsed_local_min, time_elapsed_local_sum_min]), time_min, op=process.mpi.MIN)
+    mpi_comm.Reduce(np.array([time_elapsed_local_max, time_elapsed_local_sum_max]), time_max, op=process.mpi.MAX)
     if mpi_rank == 0:
         print('\x1b[1A')  # reset the line due to print_progress
         print("Computing time across all ranks: \n"
